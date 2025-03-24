@@ -10,7 +10,7 @@ export default function venue(){
             <h1 className="text-xl font-medium">Select your venue</h1>
             <Suspense fallback={<p>loading...<LinearProgress/></p>}>
             </Suspense>
-            {/* <CardPanel/> */}
+            {}
         </main>
     )
 }
