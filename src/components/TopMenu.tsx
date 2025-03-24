@@ -16,7 +16,7 @@ export default async function TopMenu(){
                     ? (
                         <>
                             <span className={styles.username}>{session.user?.name}</span>
-                            <NextLink href="/api/auth/signout?callbackUrl=/" className={styles.menuItem}>
+                            <NextLink href="/signout?callbackUrl=/" className={styles.menuItem}>
                                 Sign-Out
                             </NextLink>
                             <TopMenuItem title='My Profile' pageRef='/account/profile'/>
