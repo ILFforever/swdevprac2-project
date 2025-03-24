@@ -46,7 +46,7 @@ export default async function TopMenu(){
                 <TopMenuItem title='About' pageRef='/about'/>
                 <TopMenuItem title='Fleet' pageRef='/venue'/>
                 <TopMenuItem title='Services' pageRef='/about'/>
-                <TopMenuItem title='Reserve' pageRef='/booking'/>
+                <TopMenuItem title='Reserve' pageRef='/catalog'/>
                 <NextLink href="/">
                     <div className={styles.logowrapper}>
                         <Image 
