@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import getUserProfile from '@/libs/getUserProfile';
+import TierBadge from '@/components/TIerBadge';
 
 export const metadata: Metadata = {
   title: 'My Profile | CEDT Rentals',
@@ -65,10 +66,10 @@ export default async function ProfilePage() {
             </div>
             
             <div>
-              <p className="text-gray-600 text-sm">Customer Tier</p>
-              <p className="font-medium">
-                {userProfile.tier === 0 ? 'Standard' : `Tier ${userProfile.tier}`}
-              </p>
+              <p className="text-gray-600 text-sm">Membership Tier</p>
+              <div className="mt-1">
+                <TierBadge tier={userProfile.tier} />
+              </div>
             </div>
             
             <div>

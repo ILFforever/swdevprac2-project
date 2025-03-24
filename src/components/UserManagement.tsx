@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { API_BASE_URL, createAuthHeader } from '@/config/apiConfig';
+import { API_BASE_URL } from '@/config/apiConfig';
 import { User, ApiResponse } from '@/types/dataTypes';
 import { useSession } from 'next-auth/react';
-import TierBadge from './TIerBadge';
-interface AdminUserManagementProps {
+import { getTierName, getTierColorClass } from '@/utils/tierUtils';
+import TierBadge from '@/components/TIerBadge';
+
+interface UserManagementProps {
   token: string;
 }
 
-interface AdminUserFormData {
+interface UserFormData {
   name: string;
   email: string;
   telephone_number: string;
@@ -17,72 +19,20 @@ interface AdminUserFormData {
   confirmPassword: string;
 }
 
-export default function AdminUserManagement({ token }: AdminUserManagementProps) {
+export default function UserManagement({ token }: UserManagementProps) {
   const { data: session } = useSession();
-  const [adminUsers, setAdminUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState<AdminUserFormData>({
+  const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
     telephone_number: '',
     password: '',
     confirmPassword: '',
   });
-
-  // Fetch all admin users on component mount
-  // Log token on component mount to verify it's being received
-  useEffect(() => {
-    console.log('AdminUserManagement mounted with token available:', !!token);
-    if (!token) {
-      setError('No authentication token available. Please log in again.');
-    } else {
-      fetchAdminUsers();
-    }
-  }, [token]);
-
-  const fetchAdminUsers = async () => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      // Log the token to check if it's available
-      console.log('Auth token available:', !!token);
-      console.log('Authorization header:', `Bearer ${token.substring(0, 10)}...`);
-      
-      // Use the auth/admins endpoint as specified in the router definition
-      const response = await fetch(`${API_BASE_URL}/auth/admins`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        console.error('Admin fetch failed with status:', response.status);
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch admin users: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Admin data received:', data);
-      
-      // Handle the exact format provided by the getAdmins controller
-      if (data.success && Array.isArray(data.data)) {
-        setAdminUsers(data.data);
-      } else {
-        throw new Error('Unexpected response format from server');
-      }
-    } catch (error) {
-      console.error('Error fetching admin users:', error);
-      setError('Could not load admin users. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Reset form fields function
   const resetFormFields = () => {
@@ -104,6 +54,57 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Fetch all users on component mount
+  useEffect(() => {
+    console.log('UserManagement mounted with token available:', !!token);
+    if (!token) {
+      setError('No authentication token available. Please log in again.');
+    } else {
+      fetchUsers();
+    }
+  }, [token]);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Log the token to check if it's available
+      console.log('Auth token available:', !!token);
+      console.log('Authorization header:', `Bearer ${token.substring(0, 10)}...`);
+      
+      // Use the auth/users endpoint as specified in the router definition
+      const response = await fetch(`${API_BASE_URL}/auth/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Users fetch failed with status:', response.status);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to fetch users: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('User data received:', data);
+      
+      // Handle the response format
+      if (data.success && Array.isArray(data.data)) {
+        setUsers(data.data);
+      } else {
+        throw new Error('Unexpected response format from server');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setError('Could not load users. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const validateForm = () => {
@@ -157,25 +158,25 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
           email: formData.email,
           password: formData.password,
           telephone_number: formData.telephone_number,
-          role: "admin"
+          role: "user" // Regular user role
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || data.msg || 'Failed to create admin user');
+        throw new Error(data.message || data.msg || 'Failed to create user');
       }
 
       // Reset form and show success message
       resetFormFields();
-      setSuccess('Admin user created successfully');
+      setSuccess('User created successfully');
       setShowCreateForm(false);
       
-      // Refresh the admin users list
-      fetchAdminUsers();
+      // Refresh the users list
+      fetchUsers();
     } catch (error) {
-      console.error('Error creating admin user:', error);
+      console.error('Error creating user:', error);
       if (error instanceof Error) {
         setError(error.message);
       } else {
@@ -189,11 +190,11 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
   const handleDeactivateUser = async (userId: string) => {
     // Prevent deleting themselves
     if (userId === session?.user?._id) {
-      setError('You cannot delete your own admin account');
+      setError('You cannot delete your own account');
       return;
     }
 
-    if (!confirm('Are you sure you want to deactivate this admin user?')) {
+    if (!confirm('Are you sure you want to deactivate this user?')) {
       return;
     }
 
@@ -202,10 +203,10 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
     setSuccess('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/admins/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/users/${userId}`, {
         method: 'DELETE',
         headers: {
-          ...createAuthHeader(token),
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -215,10 +216,10 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
         throw new Error(data.message || data.msg || 'Failed to deactivate user');
       }
 
-      setSuccess('Admin user deactivated successfully');
+      setSuccess('User deactivated successfully');
       
-      // Update the admin users list
-      setAdminUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
+      // Update the users list
+      setUsers(prevUsers => prevUsers.filter(user => user._id !== userId));
     } catch (error) {
       console.error('Error deactivating user:', error);
       if (error instanceof Error) {
@@ -257,7 +258,7 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
         </div>
       )}
 
-      {/* Create Admin Button */}
+      {/* Create User Button */}
       <div className="mb-6 flex justify-end">
         <button
           onClick={() => {
@@ -269,14 +270,14 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
           }}
           className="px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
         >
-          {showCreateForm ? 'Cancel' : 'Create New Admin'}
+          {showCreateForm ? 'Cancel' : 'Create New User'}
         </button>
       </div>
 
-      {/* Create Admin Form */}
+      {/* Create User Form */}
       {showCreateForm && (
         <div className="mb-8 p-5 border border-gray-200 rounded-lg">
-          <h2 className="text-xl font-medium mb-4">Create New Administrator</h2>
+          <h2 className="text-xl font-medium mb-4">Create New User</h2>
           
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -365,21 +366,21 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
                 disabled={isLoading}
                 className="px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors disabled:opacity-50"
               >
-                {isLoading ? 'Creating...' : 'Create Admin User'}
+                {isLoading ? 'Creating...' : 'Create User'}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Admin Users Table */}
+      {/* Users Table */}
       <div className="overflow-x-auto">
-        <h2 className="text-xl font-medium mb-4">Current Administrators</h2>
+        <h2 className="text-xl font-medium mb-4">Current Users</h2>
         
-        {isLoading && !adminUsers.length ? (
-          <p className="text-center py-4">Loading admin users...</p>
-        ) : adminUsers.length === 0 ? (
-          <p className="text-center py-4 text-gray-600">No admin users found.</p>
+        {isLoading && !users.length ? (
+          <p className="text-center py-4">Loading users...</p>
+        ) : users.length === 0 ? (
+          <p className="text-center py-4 text-gray-600">No users found.</p>
         ) : (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -394,6 +395,9 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
                   Telephone
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Role
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -405,7 +409,7 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {adminUsers.map((user) => (
+              {users.map((user) => (
                 <tr key={user._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.name}</div>
@@ -415,6 +419,13 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">{user.telephone_number}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {user.role}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
@@ -428,6 +439,10 @@ export default function AdminUserManagement({ token }: AdminUserManagementProps)
                     {user._id === session?.user?._id ? (
                       <span className="text-gray-400 cursor-not-allowed">
                         Current User
+                      </span>
+                    ) : user.role === 'admin' ? (
+                      <span className="text-gray-400 cursor-not-allowed">
+                        Admin
                       </span>
                     ) : (
                       <button
