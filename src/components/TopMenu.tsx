@@ -21,6 +21,11 @@ export default async function TopMenu(){
                             </NextLink>
                             <TopMenuItem title='My Profile' pageRef='/account/profile'/>
                             <TopMenuItem title='My Reservations' pageRef='/account/reservations'/>
+                            {session.user?.role === 'admin' && (
+                                <NextLink href="/admin/tools" className={`${styles.menuItem} text-red-600 font-bold`}>
+                                    Admin Tools
+                                </NextLink>
+                            )}
                         </>
                     ) 
                     : (
