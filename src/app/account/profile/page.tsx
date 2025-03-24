@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import getUserProfile from '@/libs/getUserProfile';
 
 export const metadata: Metadata = {
   title: 'My Profile | Heritage Motoring',
@@ -15,7 +16,20 @@ export default async function ProfilePage() {
   if (!session) {
     redirect('/signin?callbackUrl=/account/profile');
   }
-  console.log(session.user)
+
+  // Fetch the complete user profile directly from API
+  const userProfileResponse = await getUserProfile(session.user.token);
+  const userProfile = userProfileResponse.data;
+  
+  // Format date for better display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   return (
     <main className="py-10 px-4 max-w-3xl mx-auto">
       <h1 className="text-3xl font-medium mb-6">My Profile</h1>
@@ -27,17 +41,44 @@ export default async function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-gray-600 text-sm">Name</p>
-              <p className="font-medium">{session.user.name}</p>
+              <p className="font-medium">{userProfile.name}</p>
             </div>
             
             <div>
               <p className="text-gray-600 text-sm">Email</p>
-              <p className="font-medium">{session.user.email}</p>
+              <p className="font-medium">{userProfile.email}</p>
             </div>
             
             <div>
+              <p className="text-gray-600 text-sm">Telephone Number</p>
+              <p className="font-medium">{userProfile.telephone_number}</p>
+            </div>
+
+            <div>
               <p className="text-gray-600 text-sm">Account Type</p>
-              <p className="font-medium capitalize">{session.user.role}</p>
+              <p className="font-medium capitalize">{userProfile.role}</p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600 text-sm">Total Spend</p>
+              <p className="font-medium">${userProfile.total_spend.toFixed(2)}</p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600 text-sm">Customer Tier</p>
+              <p className="font-medium">
+                {userProfile.tier === 0 ? 'Standard' : `Tier ${userProfile.tier}`}
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600 text-sm">Member Since</p>
+              <p className="font-medium">{formatDate(userProfile.createdAt)}</p>
+            </div>
+            
+            <div>
+              <p className="text-gray-600 text-sm">Account ID</p>
+              <p className="font-medium text-xs text-gray-500">{userProfile._id}</p>
             </div>
           </div>
         </div>

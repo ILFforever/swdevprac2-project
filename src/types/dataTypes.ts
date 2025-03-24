@@ -5,6 +5,9 @@ export interface User {
   email: string;
   role: string;
   telephone_number?: string;
+  total_spend: number;
+  tier: number;
+  createdAt: string;
 }
 
 // Venue/vehicle data type

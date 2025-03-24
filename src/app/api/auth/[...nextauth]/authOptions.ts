@@ -2,99 +2,97 @@ import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import userLogin from "@/libs/userLogIn";
 import getUserProfile from "@/libs/getUserProfile";
-import { User } from "next-auth";
+import { JWT } from "next-auth/jwt";
+
+// Define a custom User type that extends the NextAuth User type
+interface CustomUser {
+  id: string;
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  token: string;
+  telephone_number?: string;
+}
 
 export const authOptions: AuthOptions = {
-    providers: [
-      CredentialsProvider({
-        name: 'Credentials',
-        credentials: {
-          email: { label: "Email", type: "email", placeholder: "email" },
-          password: { label: "Password", type: "password" }
-        },
-        
-        async authorize(credentials, req) {
-          if (!credentials) return null;
-  
-          try {
-            console.log('authorize: Attempting to log in with credentials');
-            
-            // Attempt to log in the user
-            const loginResult = await userLogin(credentials.email, credentials.password);
-            
-            if (loginResult && loginResult.success && loginResult.token) {
-              console.log('Login successful, fetching user profile');
-              
-              try {
-                // Fetch additional user profile data using the token
-                const userProfile = await getUserProfile(loginResult.token);
-                
-                console.log('User profile fetched:', userProfile);
-                
-                // Return combined user data with token
-                // Make sure to include 'id' property which NextAuth requires
-                return {
-                  id: userProfile.data._id, // NextAuth requires 'id' property
-                  _id: userProfile.data._id,
-                  name: userProfile.data.name,
-                  email: userProfile.data.email,
-                  role: userProfile.data.role,
-                  token: loginResult.token
-                } as User;
-              } catch (profileError) {
-                console.error('Error fetching user profile:', profileError);
-                
-                // If we can't fetch the profile but login was successful,
-                // return minimal user data with required 'id' property
-                return {
-                  id: 'unknown', // NextAuth requires 'id' property
-                  email: credentials.email,
-                  token: loginResult.token,
-                  name: 'User', // Default name
-                  role: 'user', // Default role
-                  _id: 'unknown'
-                } as User;
-              }
-            }
-            
-            console.log('Login failed or token missing');
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "email", placeholder: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      
+      async authorize(credentials) {
+        if (!credentials) return null;
+
+        try {
+          // Login user and get token
+          const loginResult = await userLogin(credentials.email, credentials.password);
+          
+          if (!loginResult?.success || !loginResult?.token) {
             return null;
-          } catch (error) {
-            // Handle login errors
-            console.error("Authentication error:", error);
-            throw new Error(error instanceof Error ? error.message : "Invalid credentials");
           }
+          
+          // Fetch user profile with token
+          const userProfile = await getUserProfile(loginResult.token);
+          
+          // Return user data with token
+          return {
+            id: userProfile.data._id,
+            _id: userProfile.data._id,
+            name: userProfile.data.name,
+            email: userProfile.data.email,
+            role: userProfile.data.role,
+            token: loginResult.token,
+            telephone_number: userProfile.data.telephone_number
+          } as CustomUser;
+        } catch (error) {
+          console.error("Authentication error:", error);
+          return null;
         }
-      })
-    ],
-    pages: {
-      signIn: '/signin',
+      }
+    })
+  ],
+  pages: {
+    signIn: '/signin',
+  },
+  session: { strategy: "jwt" },
+  callbacks: {
+    jwt({ token, user }) {
+      // Add user data to JWT when signing in
+      if (user) {
+        const customUser = user as CustomUser;
+        token._id = customUser._id;
+        token.name = customUser.name;
+        token.email = customUser.email;
+        token.role = customUser.role;
+        token.token = customUser.token;
+        
+        // Only add telephone_number if it exists
+        if (customUser.telephone_number) {
+          token.telephone_number = customUser.telephone_number;
+        }
+      }
+      return token;
     },
-    session: { strategy: "jwt" },
-    callbacks: {
-      async jwt({ token, user }) {
-        // Initial sign in
-        if (user) {
-          console.log('JWT callback with user:', user);
-          token._id = user._id || user.id; // Fallback to id if _id is not available
-          token.name = user.name;
-          token.email = user.email;
-          token.role = user.role;
-          token.token = user.token;
+    session({ session, token }) {
+      // Add token data to the session
+      if (token && session.user) {
+        // Ensure these fields exist in your next-auth.d.ts Session interface
+        session.user._id = token._id as string;
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
+        session.user.role = token.role as string;
+        session.user.token = token.token as string;
+        
+        // Safely add telephone_number using type assertion
+        if (token.telephone_number) {
+          (session.user as any).telephone_number = token.telephone_number;
         }
-        return token;
-      },
-      async session({ session, token }) {
-        console.log('Session callback with token:', token);
-        if (token && session.user) {
-          session.user._id = token._id;
-          session.user.name = token.name;
-          session.user.email = token.email;
-          session.user.role = token.role || 'user'; // Provide default role if missing
-          session.user.token = token.token;
-        }
-        return session;
-      },
+      }
+      return session;
     },
-    debug: process.env.NODE_ENV === 'development',
-  };
+  }
+};

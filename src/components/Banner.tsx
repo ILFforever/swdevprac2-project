@@ -146,20 +146,6 @@ export default function Banner() {
                     />
                 ))}
             </div>
-            
-            {
-                session ? 
-                <div className='z-30 absolute top-5 right-10 font-semibold text-white-800 text-xl'>
-                    Welcome, {session.user?.name}
-                </div> : null
-            }
-            
-            {/* <button 
-                className="absolute bottom-6 right-6 z-30 bg-white text-[#8A7D55] border border-[#8A7D55] font-medium px-5 py-3 rounded hover:bg-[#8A7D55] hover:text-white hover:border-transparent transition-colors duration-300"
-                onClick={() => router.push('/booking')}
-            >
-                Reserve a Vehicle
-            </button> */}
         </div>
     );
 }

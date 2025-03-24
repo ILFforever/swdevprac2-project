@@ -15,10 +15,10 @@ export default async function TopMenu(){
                 {session 
                     ? (
                         <>
+                            <span className={styles.username}>{session.user?.name}</span>
                             <NextLink href="/api/auth/signout?callbackUrl=/" className={styles.menuItem}>
                                 Sign-Out
                             </NextLink>
-                            <span className={styles.username}>{session.user?.name}</span>
                             <TopMenuItem title='My Profile' pageRef='/account/profile'/>
                             <TopMenuItem title='My Reservations' pageRef='/myreservations'/>
                         </>
