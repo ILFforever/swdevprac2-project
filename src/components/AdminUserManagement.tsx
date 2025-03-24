@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { API_BASE_URL, createAuthHeader } from '@/config/apiConfig';
 import { User, ApiResponse } from '@/types/dataTypes';
 import { useSession } from 'next-auth/react';
-import TierBadge from './TIerBadge';
+import TierBadge from './TierBadge';
 interface AdminUserManagementProps {
   token: string;
 }

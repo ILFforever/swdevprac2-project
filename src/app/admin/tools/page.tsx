@@ -52,7 +52,7 @@ export default async function AdminToolsPage() {
           <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Create New Car Provider</h2>
           <p className="text-gray-600 mb-4">Add a new car provider or rental company to the system.</p>
           <Link 
-            href="/admin-tools/car-providers" 
+            href="/admin/managecarproviders" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
           >
             Manage Providers
