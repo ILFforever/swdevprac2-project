@@ -15,7 +15,7 @@ export default async function MyReservationsPage() {
   const session = await getServerSession(authOptions);
   
   if (!session) {
-    redirect('/signin?callbackUrl=/myreservations');
+    redirect('/signin?callbackUrl=/account/reservations');
   }
   
   // Fetch the user's reservations using the token
@@ -95,7 +95,7 @@ export default async function MyReservationsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <Link 
-                      href={`/myreservations/${reservation._id || reservation.id}`}
+                      href={`/account/reservations/${reservation._id || reservation.id}`}
                       className="text-[#8A7D55] hover:underline"
                     >
                       View Details
