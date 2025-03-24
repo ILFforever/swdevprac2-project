@@ -20,7 +20,7 @@ export default async function TopMenu(){
                                 Sign-Out
                             </NextLink>
                             <TopMenuItem title='My Profile' pageRef='/account/profile'/>
-                            <TopMenuItem title='My Reservations' pageRef='/myreservations'/>
+                            <TopMenuItem title='My Reservations' pageRef='/account/reservations'/>
                         </>
                     ) 
                     : (

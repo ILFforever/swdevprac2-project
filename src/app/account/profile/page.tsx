@@ -85,7 +85,7 @@ export default async function ProfilePage() {
         
         <div className="flex flex-wrap gap-4">
           <Link 
-            href="/myreservations" 
+            href="/account/reservations" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
           >
             View My Reservations
