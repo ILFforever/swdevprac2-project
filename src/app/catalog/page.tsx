@@ -2,10 +2,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function CatalogPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   // Authentication
   const { data: session } = useSession();
   
@@ -24,8 +28,15 @@ export default function CatalogPage() {
     max: 500
   });
   
-  // Sort state
-  const [sortOption, setSortOption] = useState('default');
+  // Date range state
+  const [dateRange, setDateRange] = useState({
+    startDate: searchParams.get('startDate') || '',
+    endDate: searchParams.get('endDate') || ''
+  });
+  
+  
+  // Location state
+  const [selectedLocation, setSelectedLocation] = useState(searchParams.get('location') || '');
   
   // Filter states
   const [activeFilters, setActiveFilters] = useState({
@@ -35,6 +46,48 @@ export default function CatalogPage() {
     seats: '',
     provider: ''
   });
+
+  // Extract unique values for filter options from fetched data
+  const extractFilterOptions = () => {
+    if (!cars.length) return {
+      vehicleType: [],
+      brand: [],
+      year: [],
+      seats: [],
+      provider: []
+    };
+    
+    return {
+      vehicleType: [...new Set(cars.map(car => car.type))].filter(Boolean),
+      brand: [...new Set(cars.map(car => car.brand))].filter(Boolean),
+      year: [...new Set(cars.map(car => car.year?.toString()))].filter(Boolean),
+      seats: [...new Set(cars.map(car => car.seats?.toString()))].filter(Boolean),
+      provider: [...new Set(cars.map(car => car.provider))].filter(Boolean)
+    };
+  };
+  
+  // Toggle filter selection
+  const toggleFilter = (category, value) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      [category]: prev[category] === value ? '' : value
+    }));
+  };
+  
+  // Handle location and date changes
+  const updateSearch = (updates) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    
+    router.push(`/catalog?${newParams.toString()}`);
+  };
   
   // Fetch car data and providers from API
   useEffect(() => {
@@ -74,8 +127,24 @@ export default function CatalogPage() {
           setProviders(providersMap);
         }
         
+        // Build query parameters
+        let queryParams = '';
+        
+        // Add location filter (by provider)
+        if (selectedLocation) {
+          // Find provider ID by location name
+          const providerEntry = Object.entries(providersMap).find(
+            ([_, provider]) => provider.name === selectedLocation || 
+                              (provider.address && provider.address.includes(selectedLocation))
+          );
+          
+          if (providerEntry) {
+            queryParams += `?providerId=${providerEntry[0]}`;
+          }
+        }
+        
         // Then fetch cars
-        const carsResponse = await fetch('http://localhost:5000/api/v1/cars', {
+        const carsResponse = await fetch(`http://localhost:5000/api/v1/cars${queryParams}`, {
           headers: authHeader
         });
         
@@ -101,6 +170,7 @@ export default function CatalogPage() {
               seats: car.seats || 5,
               providerId: car.provider_id,
               provider: provider.name || 'Unknown Provider',
+              rents: car.rents || [],
               image: car.image || '/img/car-default.jpg'
             };
           });
@@ -124,36 +194,42 @@ export default function CatalogPage() {
       setLoading(false);
       setError('Please log in to view available cars');
     }
-  }, [session]);
+  }, [session, selectedLocation, dateRange.startDate, dateRange.endDate]);
   
-  // Extract unique values for filter options from fetched data
-  const extractFilterOptions = () => {
-    if (!cars.length) return {
-      vehicleType: [],
-      brand: [],
-      year: [],
-      seats: [],
-      provider: []
-    };
+  // Filter cars based on date availability
+  const filterAvailableCars = (carsList) => {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      return carsList; // Return all cars if no date range selected
+    }
     
-    return {
-      vehicleType: [...new Set(cars.map(car => car.type))].filter(Boolean),
-      brand: [...new Set(cars.map(car => car.brand))].filter(Boolean),
-      year: [...new Set(cars.map(car => car.year.toString()))].filter(Boolean),
-      seats: [...new Set(cars.map(car => car.seats.toString()))].filter(Boolean),
-      provider: [...new Set(cars.map(car => car.provider))].filter(Boolean)
-    };
+    const start = new Date(dateRange.startDate);
+    const end = new Date(dateRange.endDate);
+    
+    return carsList.filter(car => {
+      // If car has rents array, check if any bookings overlap with selected dates
+      if (car.rents && Array.isArray(car.rents)) {
+        const conflictingRent = car.rents.find(rent => {
+          if (!rent.startDate || !rent.returnDate) return false;
+          
+          const rentStart = new Date(rent.startDate);
+          const rentEnd = new Date(rent.returnDate);
+          
+          // Check for overlap
+          return (
+            (rentStart <= end && rentEnd >= start) ||
+            (rentStart <= start && rentEnd >= start) ||
+            (rentStart <= end && rentEnd >= end)
+          );
+        });
+        
+        return !conflictingRent; // Car is available if there's no conflict
+      }
+      
+      return true; // Assume available if no rent data
+    });
   };
   
   const filterOptions = extractFilterOptions();
-  
-  // Toggle filter selection
-  const toggleFilter = (category, value) => {
-    setActiveFilters(prev => ({
-      ...prev,
-      [category]: prev[category] === value ? '' : value
-    }));
-  };
   
   // Filter the cars
   const filteredCars = cars.filter(car => {
@@ -167,106 +243,51 @@ export default function CatalogPage() {
     // Apply price range filter
     if (car.price < priceRange.min || car.price > priceRange.max) return false;
     
+    // Apply location filter (already filtered by API, but double-check)
+    if (selectedLocation && !car.provider.includes(selectedLocation)) return false;
+    
     // Apply all other filters
     if (activeFilters.vehicleType && car.type !== activeFilters.vehicleType) return false;
     if (activeFilters.brand && car.brand !== activeFilters.brand) return false;
-    if (activeFilters.year && car.year.toString() !== activeFilters.year) return false;
-    if (activeFilters.seats && car.seats.toString() !== activeFilters.seats) return false;
+    if (activeFilters.year && car.year?.toString() !== activeFilters.year) return false;
+    if (activeFilters.seats && car.seats?.toString() !== activeFilters.seats) return false;
     if (activeFilters.provider && car.provider !== activeFilters.provider) return false;
     return true;
   });
   
-  // Sort function
-  const sortCars = (carsToSort) => {
-    switch(sortOption) {
-      case 'price_asc':
-        return [...carsToSort].sort((a, b) => a.price - b.price);
-      case 'price_desc':
-        return [...carsToSort].sort((a, b) => b.price - a.price);
-      case 'provider':
-        return [...carsToSort].sort((a, b) => a.provider.localeCompare(b.provider));
-      case 'brand':
-        return [...carsToSort].sort((a, b) => a.brand.localeCompare(b.brand));
-      default:
-        return carsToSort;
-    }
-  };
-  
-  // Then sort the filtered cars
-  const sortedCars = sortCars(filteredCars);
+  // Further filter for availability based on dates
+  const availableCars = filterAvailableCars(filteredCars);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      {/* Header */}
       <header className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">
             {loading ? 'Loading cars...' : 
              error ? 'Error loading cars' : 
-             `${filteredCars.length} cars available`}
+             `${availableCars.length} cars available`}
           </h1>
           
           {/* Sort dropdown */}
           <div className="relative">
-            <div 
-              className="flex items-center bg-white border rounded-md px-3 py-2 cursor-pointer" 
-              onClick={() => document.getElementById('sortDropdown')?.classList.toggle('hidden')}
-            >
-              <span className="mr-2">
-                Sort by: {
-                  sortOption === 'default' ? 'Recommended' : 
-                  sortOption === 'price_asc' ? 'Price: Low to High' : 
-                  sortOption === 'price_desc' ? 'Price: High to Low' : 
-                  sortOption === 'provider' ? 'Provider' :
-                  sortOption === 'brand' ? 'Brand' : 'Recommended'
-                }
-              </span>
+            <div className="flex items-center bg-white border rounded-md px-3 py-2 cursor-pointer" onClick={() => document.getElementById('sortDropdown')?.classList.toggle('hidden')}>
+              <span className="mr-2">Sort by: Recommended</span>
               <ChevronDown size={16} />
             </div>
             <div id="sortDropdown" className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 w-48 hidden">
-              <div 
-                className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${sortOption === 'default' ? 'bg-gray-100 font-medium' : ''}`}
-                onClick={() => {
-                  setSortOption('default');
-                  document.getElementById('sortDropdown')?.classList.add('hidden');
-                }}
-              >
+              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded bg-gray-100 font-medium">
                 Recommended
               </div>
-              <div 
-                className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${sortOption === 'price_asc' ? 'bg-gray-100 font-medium' : ''}`}
-                onClick={() => {
-                  setSortOption('price_asc');
-                  document.getElementById('sortDropdown')?.classList.add('hidden');
-                }}
-              >
+              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
                 Price: Low to High
               </div>
-              <div 
-                className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${sortOption === 'price_desc' ? 'bg-gray-100 font-medium' : ''}`}
-                onClick={() => {
-                  setSortOption('price_desc');
-                  document.getElementById('sortDropdown')?.classList.add('hidden');
-                }}
-              >
+              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
                 Price: High to Low
               </div>
-              <div 
-                className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${sortOption === 'provider' ? 'bg-gray-100 font-medium' : ''}`}
-                onClick={() => {
-                  setSortOption('provider');
-                  document.getElementById('sortDropdown')?.classList.add('hidden');
-                }}
-              >
+              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
                 Provider
               </div>
-              <div 
-                className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${sortOption === 'brand' ? 'bg-gray-100 font-medium' : ''}`}
-                onClick={() => {
-                  setSortOption('brand');
-                  document.getElementById('sortDropdown')?.classList.add('hidden');
-                }}
-              >
+              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
                 Brand
               </div>
             </div>
@@ -275,18 +296,92 @@ export default function CatalogPage() {
         
         {/* Filters and search */}
         <div className="mb-6">
-          {/* Search bar */}
-          <div className="mb-4 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+          {/* Date range selector */}
+          <div className="mb-4 flex items-center">
+            <div className="mr-2 text-sm font-medium text-gray-700">Rental Period:</div>
+            <div className="flex-1 grid grid-cols-2 gap-4">
+              <div className="relative">
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">From</span>
+                  <div className="flex-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="date"
+                      value={dateRange.startDate}
+                      onChange={(e) => {
+                        setDateRange({...dateRange, startDate: e.target.value});
+                        updateSearch({startDate: e.target.value});
+                      }}
+                      className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <div className="flex items-center">
+                  <span className="text-gray-500 mr-2">Until</span>
+                  <div className="flex-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="date"
+                      value={dateRange.endDate}
+                      min={dateRange.startDate || undefined}
+                      onChange={(e) => {
+                        setDateRange({...dateRange, endDate: e.target.value});
+                        updateSearch({endDate: e.target.value});
+                      }}
+                      className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <input
-              type="text"
-              placeholder="Search by car model or provider..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-            />
+          </div>
+          
+          {/* Location selector */}
+          <div className="mb-4 relative">
+            <div className="mr-2 text-sm font-medium text-gray-700 mb-2">Location:</div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Enter city or car provider name..."
+                value={selectedLocation}
+                onChange={(e) => {
+                  setSelectedLocation(e.target.value);
+                  updateSearch({location: e.target.value});
+                }}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
+              />
+            </div>
+            
+            {/* Location suggestions */}
+            {filterOptions.provider.length > 0 && selectedLocation && (
+              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-56 overflow-auto">
+                {filterOptions.provider
+                  .filter(provider => provider.toLowerCase().includes(selectedLocation.toLowerCase()))
+                  .map((provider, index) => (
+                    <div
+                      key={index}
+                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                      onClick={() => {
+                        setSelectedLocation(provider);
+                        updateSearch({location: provider});
+                      }}
+                    >
+                      {provider}
+                    </div>
+                  ))
+                }
+              </div>
+            )}
           </div>
           
           {/* Price range selector */}
@@ -329,7 +424,21 @@ export default function CatalogPage() {
               </div>
             </div>
           </div>
-        
+          
+          {/* Other search filters */}
+          <div className="mb-4 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by car model or brand..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
+            />
+          </div>
+          
           <div className="flex flex-wrap gap-2">
             <div className="relative group">
               <div className={`flex items-center px-3 py-2 border rounded-full cursor-pointer ${activeFilters.vehicleType ? 'bg-[#8A7D55] text-white' : 'bg-white'}`}>
@@ -422,12 +531,26 @@ export default function CatalogPage() {
             </div>
             
             {/* Clear filters button */}
-            {Object.values(activeFilters).some(filter => filter !== '') && (
+            {(Object.values(activeFilters).some(filter => filter !== '') || 
+              priceRange.min > 0 || 
+              priceRange.max < 500 || 
+              dateRange.startDate || 
+              dateRange.endDate ||
+              selectedLocation || 
+              searchQuery) && (
               <div 
                 className="flex items-center px-3 py-2 border border-red-300 text-red-600 rounded-full cursor-pointer hover:bg-red-50"
-                onClick={() => setActiveFilters({vehicleType: '', brand: '', year: '', seats: '', provider: ''})}
+                onClick={() => {
+                  setActiveFilters({vehicleType: '', brand: '', year: '', seats: '', provider: ''});
+                  setPriceRange({min: 0, max: 500});
+                  setDateRange({startDate: '', endDate: ''});
+                  setSelectedLocation('');
+                  setSearchQuery('');
+                  // Clear URL params
+                  router.push('/catalog');
+                }}
               >
-                <span>Clear filters</span>
+                <span>Clear all filters</span>
               </div>
             )}
           </div>
@@ -472,59 +595,66 @@ export default function CatalogPage() {
       {/* Cars grid - only show when we have data and no errors */}
       {!loading && !error && session && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {sortedCars.map((car) => (
-          <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md">
-            <div className="relative">
-              <img 
-                src={car.image} 
-                alt={`${car.brand} ${car.model}`} 
-                className="w-full h-48 object-cover"
-              />
-            </div>
-            
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h2 className="text-lg font-bold">{car.brand} {car.model} {car.year}</h2>
-                  <p className="text-sm text-gray-600 -mt-1">
-                    Provided by <span className="font-medium text-blue-700">{car.provider}</span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="font-bold text-lg text-[#8A7D55]">${car.price}</span>
-                  <span className="text-gray-600 text-sm"> /day</span>
-                </div>
+          {availableCars.map((car) => (
+            <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md">
+              <div className="relative">
+                <img 
+                  src={car.image} 
+                  alt={`${car.brand} ${car.model}`} 
+                  className="w-full h-48 object-cover"
+                />
               </div>
               
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
-                  {car.type}
-                </span>
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
-                  {car.seats} seats
-                </span>
-              </div>
-              
-              <div className="mt-4">
-              <a href="/reserve">
-                <button className="w-full py-2.5 bg-[#8A7D55] hover:bg-[#766b48] text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
-                  Book Now
-                </button>
-                </a>
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h2 className="text-lg font-bold">{car.brand} {car.model} {car.year}</h2>
+                    <p className="text-sm text-gray-600 -mt-1">
+                      Provided by <span className="font-medium text-blue-700">{car.provider}</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-lg text-[#8A7D55]">${car.price}</span>
+                    <span className="text-gray-600 text-sm"> /day</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
+                    {car.type}
+                  </span>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
+                    {car.seats} seats
+                  </span>
+                </div>
+                
+                <div className="mt-4">
+                  <button className="w-full py-2.5 bg-[#8A7D55] hover:bg-[#766b48] text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
+                    Book Now
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-              </div>
+          ))}
+        </div>
       )}
       
       {/* No results message */}
-      {!loading && !error && filteredCars.length === 0 && (
+      {!loading && !error && session && availableCars.length === 0 && (
         <div className="text-center py-10">
-          <h3 className="text-xl font-medium text-gray-600">No cars match your current filters</h3>
+          <h3 className="text-xl font-medium text-gray-600">No cars match your search criteria</h3>
+          <p className="text-gray-500 mt-2">Try adjusting your dates, location, or other filters</p>
           <button 
             className="mt-4 px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48]"
-            onClick={() => setActiveFilters({vehicleType: '', brand: '', year: '', seats: '', provider: ''})}
+            onClick={() => {
+              setActiveFilters({vehicleType: '', brand: '', year: '', seats: '', provider: ''});
+              setPriceRange({min: 0, max: 500});
+              setDateRange({startDate: '', endDate: ''});
+              setSelectedLocation('');
+              setSearchQuery('');
+              // Clear URL params
+              router.push('/catalog');
+            }}
           >
             Clear all filters
           </button>

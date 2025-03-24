@@ -7,6 +7,10 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
 import styles from './banner-search.module.css';
+import Router from 'next/router';
+
+// Update the handleSearch function in your BannerSearch.tsx
+
 
 function DateSection({ 
   label, 
@@ -167,9 +171,14 @@ export default function BannerSearch() {
     
     // Navigate to vehicle listing with search parameters
     router.push(
-      `/venue?location=${encodeURIComponent(location)}&pickup=${pickupFormatted}&pickupTime=${encodeURIComponent(timePickup)}&return=${returnFormatted}&returnTime=${encodeURIComponent(timeReturn)}`
+      `/catalog?location=${encodeURIComponent(location)}&pickup=${pickupFormatted}&pickupTime=${encodeURIComponent(timePickup)}&return=${returnFormatted}&returnTime=${encodeURIComponent(timeReturn)}`
     );
   };
+
+
+
+
+  
 
   return (
     <div className={styles.searchContainer}>
