@@ -506,9 +506,11 @@ export default function CatalogPage() {
               </div>
               
               <div className="mt-4">
+              <a href="/reserve">
                 <button className="w-full py-2.5 bg-[#8A7D55] hover:bg-[#766b48] text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
                   Book Now
                 </button>
+                </a>
               </div>
             </div>
           </div>
