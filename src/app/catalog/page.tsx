@@ -1,10 +1,20 @@
 // src/app/catalog/page.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 export default function CatalogPage() {
+  // Authentication
+  const { data: session } = useSession();
+  
+  // Car data state
+  const [cars, setCars] = useState([]);
+  const [providers, setProviders] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -26,84 +36,116 @@ export default function CatalogPage() {
     provider: ''
   });
   
-  // Filter options - Fixed the extra bracket after seats array
-  const filterOptions = {
-    vehicleType: ['SUV', 'Sedan', 'Sports Car', 'Compact SUV'],
-    brand: ['BMW', 'Tesla', 'Ford', 'Chevrolet', 'Mercedes-Benz'],
-    year: ['2018', '2022', '2023', '2024', '2025'],
-    seats: ['4', '5', '7'],
-    provider: ['Turo', 'Enterprise', 'Hertz', 'Avis', 'Budget']
+  // Fetch car data and providers from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Check if user is authenticated
+        if (!session?.user?.token) {
+          setError('Authentication required. Please log in.');
+          setLoading(false);
+          return;
+        }
+        
+        const authHeader = {
+          'Authorization': `Bearer ${session.user.token}`,
+          'Content-Type': 'application/json'
+        };
+        
+        // Fetch providers first
+        const providersResponse = await fetch('http://localhost:5000/api/v1/Car_Provider', {
+          headers: authHeader
+        });
+        
+        if (!providersResponse.ok) {
+          throw new Error(`Error fetching providers: ${providersResponse.status}`);
+        }
+        
+        const providersData = await providersResponse.json();
+        
+        // Create a map of provider IDs to provider objects for easy lookup
+        const providersMap = {};
+        if (providersData.success && Array.isArray(providersData.data)) {
+          providersData.data.forEach(provider => {
+            providersMap[provider._id] = provider;
+          });
+          setProviders(providersMap);
+        }
+        
+        // Then fetch cars
+        const carsResponse = await fetch('http://localhost:5000/api/v1/cars', {
+          headers: authHeader
+        });
+        
+        if (!carsResponse.ok) {
+          throw new Error(`Error fetching cars: ${carsResponse.status}`);
+        }
+        
+        const carsData = await carsResponse.json();
+        
+        // Map the API response to match our expected car format
+        if (carsData.success && Array.isArray(carsData.data)) {
+          const formattedCars = carsData.data.map(car => {
+            // Get provider details from our providers map
+            const provider = providersMap[car.provider_id] || { name: 'Unknown Provider' };
+            
+            return {
+              id: car._id || car.id,
+              brand: car.brand || 'Unknown Brand',
+              model: car.model || 'Unknown Model',
+              year: car.manufactureDate ? new Date(car.manufactureDate).getFullYear() : 2023,
+              price: car.dailyRate || 0,
+              type: car.type || 'Other',
+              seats: car.seats || 5,
+              providerId: car.provider_id,
+              provider: provider.name || 'Unknown Provider',
+              image: car.image || '/img/car-default.jpg'
+            };
+          });
+          setCars(formattedCars);
+        } else {
+          setCars([]);
+          setError('Invalid data format received from server');
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err.message || 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Only fetch data if we have a session
+    if (session?.user?.token) {
+      fetchData();
+    } else {
+      setLoading(false);
+      setError('Please log in to view available cars');
+    }
+  }, [session]);
+  
+  // Extract unique values for filter options from fetched data
+  const extractFilterOptions = () => {
+    if (!cars.length) return {
+      vehicleType: [],
+      brand: [],
+      year: [],
+      seats: [],
+      provider: []
+    };
+    
+    return {
+      vehicleType: [...new Set(cars.map(car => car.type))].filter(Boolean),
+      brand: [...new Set(cars.map(car => car.brand))].filter(Boolean),
+      year: [...new Set(cars.map(car => car.year.toString()))].filter(Boolean),
+      seats: [...new Set(cars.map(car => car.seats.toString()))].filter(Boolean),
+      provider: [...new Set(cars.map(car => car.provider))].filter(Boolean)
+    };
   };
   
-  // Car data
-  const cars = [
-    {
-      id: 1,
-      brand: 'BMW',
-      model: 'iX',
-      year: 2024,
-      price: 283,
-      type: 'SUV',
-      seats: 5,
-      provider: 'Turo',
-      image: '/img/car-bmw.jpg'
-    },
-    {
-      id: 2,
-      brand: 'Tesla',
-      model: 'Model 3',
-      year: 2025,
-      price: 155,
-      type: 'Sedan',
-      seats: 5,
-      provider: 'Enterprise',
-      image: '/img/car-tesla.jpg'
-    },
-    {
-      id: 3,
-      brand: 'Ford',
-      model: 'Mustang',
-      year: 2018,
-      price: 176,
-      type: 'Sports Car',
-      seats: 4,
-      provider: 'Hertz',
-      image: '/img/car-mustang.jpg'
-    },
-    {
-      id: 4,
-      brand: 'Ford',
-      model: 'Mustang',
-      year: 2022,
-      price: 202,
-      type: 'Sports Car',
-      seats: 4,
-      provider: 'Avis',
-      image: '/img/car-mustang-red.jpg'
-    },
-    {
-      id: 5,
-      brand: 'Chevrolet',
-      model: 'Trax',
-      year: 2024,
-      price: 118,
-      type: 'Compact SUV',
-      seats: 5,
-      provider: 'Budget',
-      image: '/img/car-trax.jpg'
-    },
-    {
-      id: 6,
-      brand: 'Mercedes-Benz',
-      model: 'GLE',
-      year: 2023,
-      price: 225,
-      type: 'SUV',
-      seats: 7,
-      provider: 'Turo',
-      image: '/img/car-mercedes.jpg'
-    }
-  ];
+  const filterOptions = extractFilterOptions();
   
   // Toggle filter selection
   const toggleFilter = (category, value) => {
@@ -158,7 +200,11 @@ export default function CatalogPage() {
       {/* Header */}
       <header className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">200+ cars available</h1>
+          <h1 className="text-2xl font-bold">
+            {loading ? 'Loading cars...' : 
+             error ? 'Error loading cars' : 
+             `${filteredCars.length} cars available`}
+          </h1>
           
           {/* Sort dropdown */}
           <div className="relative">
@@ -388,8 +434,44 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      {/* Cars grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Authentication error */}
+      {!session && (
+        <div className="text-center py-10">
+          <h3 className="text-xl font-medium text-red-600">Authentication Required</h3>
+          <p className="text-gray-600 mt-2">Please sign in to view available cars.</p>
+          <a 
+            href="/signin?callbackUrl=/catalog" 
+            className="mt-4 px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] inline-block"
+          >
+            Sign In
+          </a>
+        </div>
+      )}
+      
+      {/* Loading state */}
+      {loading && (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8A7D55]"></div>
+        </div>
+      )}
+      
+      {/* Error state */}
+      {error && !loading && session && (
+        <div className="text-center py-10">
+          <h3 className="text-xl font-medium text-red-600">Error loading cars</h3>
+          <p className="text-gray-600 mt-2">{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48]"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+      
+      {/* Cars grid - only show when we have data and no errors */}
+      {!loading && !error && session && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {sortedCars.map((car) => (
           <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md">
             <div className="relative">
@@ -404,7 +486,9 @@ export default function CatalogPage() {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h2 className="text-lg font-bold">{car.brand} {car.model} {car.year}</h2>
-                  <p className="text-sm text-gray-600 -mt-1">Provided by <span className="font-medium text-blue-700">{car.provider}</span></p>
+                  <p className="text-sm text-gray-600 -mt-1">
+                    Provided by <span className="font-medium text-blue-700">{car.provider}</span>
+                  </p>
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-lg text-[#8A7D55]">${car.price}</span>
@@ -429,10 +513,11 @@ export default function CatalogPage() {
             </div>
           </div>
         ))}
-      </div>
+              </div>
+      )}
       
       {/* No results message */}
-      {filteredCars.length === 0 && (
+      {!loading && !error && filteredCars.length === 0 && (
         <div className="text-center py-10">
           <h3 className="text-xl font-medium text-gray-600">No cars match your current filters</h3>
           <button 
