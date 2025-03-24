@@ -27,7 +27,7 @@ export default async function AdminToolsPage() {
           <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Create New Admin</h2>
           <p className="text-gray-600 mb-4">Create a new administrator account with full system access.</p>
           <Link 
-            href="/admin-tools/create-admin" 
+            href="/admin/manageAdmin" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
           >
             Manage Admins
