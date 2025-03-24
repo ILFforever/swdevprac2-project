@@ -1,5 +1,5 @@
 'use client'
-import Form from "@/components/DateReserve"
+import Form from "@/components/DateReserve";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/authOptions";
 import getUserProfile from "@/libs/getUserProfile";
@@ -12,19 +12,14 @@ import { AppDispatch } from "@/redux/store";
 import { addBooking } from "@/redux/features/bookSlice";
 
 export default function Booking(){
-    // const session = await getServerSession(authOptions)
-    // if(!session||!session.user.token) return null
-
-    // const profile=await getUserProfile(session.user.token)
-    // var createdAt = new Date(profile.data.createdAt)
     const dispatch = useDispatch<AppDispatch>()
 
     const makeBooking = ()=>{
-        if(nameLastname && tel && venue && bookDate){
+        if(nameLastname && tel && car && bookDate){
             const item:BookingItem ={
                 nameLastname: nameLastname,
                 tel: tel,
-                venue: venue,
+                car: car,
                 bookDate: dayjs(bookDate).format("YYYY/MM/DD"),
             }
             console.log(item)
@@ -35,7 +30,7 @@ export default function Booking(){
 
     const [nameLastname, setNameLastname] = useState<string>('');
     const [tel, setTel] = useState<string>('');
-    const [venue, setVenue] = useState<string>('');
+    const [car, setVenue] = useState<string>('');
     const [bookDate, setBookDate] = useState<Dayjs | null>(null);
 
     return(
