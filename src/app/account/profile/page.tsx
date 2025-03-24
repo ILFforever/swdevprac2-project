@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   if (!session) {
     redirect('/signin?callbackUrl=/account/profile');
   }
-  
+  console.log(session.user)
   return (
     <main className="py-10 px-4 max-w-3xl mx-auto">
       <h1 className="text-3xl font-medium mb-6">My Profile</h1>

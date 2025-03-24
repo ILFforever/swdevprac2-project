@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -24,6 +25,8 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
     setIsLoading(true);
 
     try {
+      console.log('Attempting to sign in with:', { email, password, callbackUrl });
+      
       const result = await signIn('credentials', {
         redirect: false,
         email,
@@ -31,8 +34,11 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
         callbackUrl,
       });
 
+      console.log('Sign in result:', result);
+
       if (result?.error) {
         setError(result.error);
+        setIsLoading(false);
         return;
       }
 
@@ -41,8 +47,8 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
         router.refresh();
       }
     } catch (error) {
+      console.error('Authentication error:', error);
       setError('An unexpected error occurred');
-    } finally {
       setIsLoading(false);
     }
   };

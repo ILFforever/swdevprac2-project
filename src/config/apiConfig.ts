@@ -8,7 +8,7 @@ export const API_BASE_URL = 'http://localhost:5000/api/v1';
 export const AUTH_ENDPOINTS = {
   REGISTER: `${API_BASE_URL}/auth/register`,
   LOGIN: `${API_BASE_URL}/auth/login`,
-  GET_PROFILE: `${API_BASE_URL}/auth/me`,
+  GET_PROFILE: `${API_BASE_URL}/auth/curuser`,
   LOGOUT: `${API_BASE_URL}/auth/logout`,
   CHANGE_PASSWORD: `${API_BASE_URL}/auth/update-password`, // Changed to match common backend naming
 };
