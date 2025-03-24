@@ -42,18 +42,21 @@ export default function RegisterForm() {
 
     return true;
   };
+// In src/components/RegisterForm.tsx
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
+  
     if (!validateForm()) {
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
+      console.log('Attempting to register with:', AUTH_ENDPOINTS.REGISTER);
+      
       // Create the user data object exactly matching the format shown in Postman
       const userData = {
         "name": name,
@@ -62,7 +65,9 @@ export default function RegisterForm() {
         "telephone_number": telephone,
         "role": "user"
       };
-
+  
+      console.log('Sending data:', userData);
+  
       const response = await fetch(AUTH_ENDPOINTS.REGISTER, {
         method: 'POST',
         headers: {
@@ -70,17 +75,22 @@ export default function RegisterForm() {
         },
         body: JSON.stringify(userData),
       });
-
+  
+      console.log('Registration response status:', response.status);
       const data = await response.json();
-
+      console.log('Registration response data:', data);
+  
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        throw new Error(data.message || data.msg || 'Registration failed');
       }
-
+  
       // Registration successful
       router.push('/register/success');
     } catch (error) {
-      if (error instanceof Error) {
+      console.error('Registration error:', error);
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        setError('Could not connect to the server. Please check your internet connection or try again later.');
+      } else if (error instanceof Error) {
         setError(error.message);
       } else {
         setError('An unexpected error occurred');
