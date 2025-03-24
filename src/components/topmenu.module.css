@@ -84,3 +84,13 @@
 .menuItem:hover:after {
   width: 100%;
 }
+
+/* Username style */
+.username {
+  font-size: 11pt;
+  color: #8A7D55;
+  font-weight: 500;
+  margin: 0 12px;
+  padding: 5px 0;
+  font-style: italic;
+}

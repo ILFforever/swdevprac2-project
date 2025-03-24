@@ -9,76 +9,79 @@ import { useRouter } from 'next/navigation';
 import styles from './banner-search.module.css';
 
 function DateSection({ 
-    label, 
-    date, 
-    setDate, 
-    timeValue, 
-    setTimeValue, 
-    timeOptions 
-  }: {
-    label: string;
-    date: Dayjs | null;
-    setDate: (date: Dayjs | null) => void;
-    timeValue: string;
-    setTimeValue: (time: string) => void;
-    timeOptions: string[];
-  }) {
-    const [isPickerOpen, setIsPickerOpen] = useState(false);
-    
-    return (
-      <div className={styles.inputGroup}>
-        <label className={styles.label}>{label}</label>
-        <div className={styles.dateTimeWrapper}>
-          <div 
-            className={styles.datePickerContainer}
-            onClick={() => setIsPickerOpen(true)}
-          >
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                value={date}
-                onChange={(newValue) => setDate(newValue)}
-                className={styles.datePicker}
-                open={isPickerOpen}
-                onClose={() => setIsPickerOpen(false)}
-                slotProps={{
-                  popper: {
-                    placement: 'bottom-start', // Position at bottom left
-                    style: { marginTop: '8px' } // Add some space below
-                  },
-                  textField: {
-                    variant: 'outlined',
-                    fullWidth: true,
-                    size: 'small',
-                    InputProps: {
-                      className: styles.datePickerInput,
-                      endAdornment: <span className={styles.hiddenIcon}></span>,
-                      style: { 
-                        fontSize: '14px',
-                        padding: 0
-                      }
-                    }
-                  },
-                  field: {
-                    shouldRespectLeadingZeros: true,
-                    format: 'MM/DD/YYYY'
+  label, 
+  date, 
+  setDate, 
+  timeValue, 
+  setTimeValue, 
+  timeOptions 
+}: {
+  label: string;
+  date: Dayjs | null;
+  setDate: (date: Dayjs | null) => void;
+  timeValue: string;
+  setTimeValue: (time: string) => void;
+  timeOptions: string[];
+}) {
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  
+  return (
+    <div className={styles.inputGroup}>
+      <label className={styles.label}>{label}</label>
+      <div className={styles.dateTimeWrapper}>
+        <div 
+          className={styles.datePickerContainer}
+          onClick={() => setIsPickerOpen(true)}
+        >
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <DatePicker
+              value={date}
+              onChange={(newValue) => setDate(newValue)}
+              className={styles.datePicker}
+              open={isPickerOpen}
+              onClose={() => setIsPickerOpen(false)}
+              slotProps={{
+                popper: {
+                  placement: 'bottom', // Position centered below rather than at start
+                  style: { 
+                    marginTop: '16px', // Match the location dropdown spacing
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)' // Match location dropdown shadow
                   }
-                }}
-              />
-            </LocalizationProvider>
-          </div>
-          <select 
-            value={timeValue}
-            onChange={(e) => setTimeValue(e.target.value)}
-            className={styles.timeSelect}
-          >
-            {timeOptions.map(time => (
-              <option key={time} value={time}>{time}</option>
-            ))}
-          </select>
+                },
+                textField: {
+                  variant: 'outlined',
+                  fullWidth: true,
+                  size: 'small',
+                  InputProps: {
+                    className: styles.datePickerInput,
+                    endAdornment: <span className={styles.hiddenIcon}></span>,
+                    style: { 
+                      fontSize: '14px',
+                      padding: 0
+                    }
+                  }
+                },
+                field: {
+                  shouldRespectLeadingZeros: true,
+                  format: 'MM/DD/YYYY'
+                }
+              }}
+            />
+          </LocalizationProvider>
         </div>
+        <select 
+          value={timeValue}
+          onChange={(e) => setTimeValue(e.target.value)}
+          className={styles.timeSelect}
+        >
+          {timeOptions.map(time => (
+            <option key={time} value={time}>{time}</option>
+          ))}
+        </select>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
 export default function BannerSearch() {
   const router = useRouter();

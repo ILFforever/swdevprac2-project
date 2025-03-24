@@ -1,18 +1,22 @@
-export default async function userLogIn(userEmail:string, userPassword:string) {
-    const response = await fetch("https://a08-venue-explorer-backend.vercel.app/api/v1/auth/login", {
+import { AUTH_ENDPOINTS } from '@/config/apiConfig';
+
+export default async function userLogin(userEmail: string, userPassword: string) {
+    const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            email: userEmail,
-            password: userPassword,
+            "email": userEmail,
+            "password": userPassword
         }),
-    })
+    });
 
-    if(!response.ok) {
-        throw new Error("Failed to fetch cars")
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Authentication failed");
     }
-    return await response.json()
+    
+    return data;
 }
-// FIX FILE NAME

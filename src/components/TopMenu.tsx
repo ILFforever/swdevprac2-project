@@ -3,7 +3,6 @@ import Image from 'next/image'
 import TopMenuItem from './TopMenuItem';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
-import { Link } from '@mui/material';
 import NextLink from 'next/link';
 
 export default async function TopMenu(){
@@ -14,14 +13,27 @@ export default async function TopMenu(){
             {/* Sign-in/Sign-out on the left side */}
             <div className={styles.leftSide}>
                 {session 
-                    ? <NextLink href="/api/auth/signout?callbackUrl=/" className={styles.menuItem}>
-                        Sign-Out of {session.user?.name}
-                      </NextLink>
-                    : <NextLink href="/api/auth/signin?callbackUrl=/" className={styles.menuItem}>
-                        Sign-In
-                      </NextLink>
+                    ? (
+                        <>
+                            <NextLink href="/api/auth/signout?callbackUrl=/" className={styles.menuItem}>
+                                Sign-Out
+                            </NextLink>
+                            <span className={styles.username}>{session.user?.name}</span>
+                            <TopMenuItem title='My Profile' pageRef='/account/profile'/>
+                            <TopMenuItem title='My Reservations' pageRef='/myreservations'/>
+                        </>
+                    ) 
+                    : (
+                        <>
+                            <NextLink href="/api/auth/signin?callbackUrl=/" className={styles.menuItem}>
+                                Sign-In
+                            </NextLink>
+                            <NextLink href="/register" className={styles.menuItem}>
+                                Register
+                            </NextLink>
+                        </>
+                    )
                 }
-                <TopMenuItem title='My Reservations' pageRef='/myreservations'/>
             </div>
             
             {/* Right side with navigation items and logo */}

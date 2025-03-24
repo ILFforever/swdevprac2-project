@@ -1,12 +1,18 @@
-export default async function getUserProfile(token:string){
-    const response = await fetch("https://a08-venue-explorer-backend.vercel.app/api/v1/auth/me",{
+import { AUTH_ENDPOINTS, createAuthHeader } from '@/config/apiConfig';
+import { ApiResponse, User } from '@/types/dataTypes';
+
+export default async function getUserProfile(token: string): Promise<ApiResponse<User>> {
+    const response = await fetch(AUTH_ENDPOINTS.GET_PROFILE, {
         method: "GET",
         headers: {
-            authorization: `Bearer ${token}`,
+            ...createAuthHeader(token),
+            'Content-Type': 'application/json'
         },
-    })
-    if (!response.ok){
-        throw new Error("Failed to fetch user profile")
+    });
+    
+    if (!response.ok) {
+        throw new Error("Failed to fetch user profile");
     }
-    return await response.json()
+    
+    return await response.json();
 }

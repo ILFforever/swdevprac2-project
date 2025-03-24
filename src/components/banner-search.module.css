@@ -466,3 +466,66 @@
     width: 0 !important;
     margin: 0 !important;
   }
+  
+.datePicker :global(.MuiInputBase-root),
+.datePicker :global(.MuiInputBase-input) {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Position the date picker container to align with start of section */
+.datePickerContainer {
+  width: 50%;
+  cursor: pointer;
+  position: relative;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  padding-top: 2px; /* Add slight top padding to move contents down */
+}
+
+/* Ensure the date input is properly aligned */
+.datePickerInput {
+  border: none !important;
+  font-size: 14px !important;
+  padding: 0 !important;
+  height: 24px !important;
+  width: 100% !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  margin-top: 2px !important; /* Shift text down slightly */
+}
+
+/* Position the popup calendar to match location dropdown */
+.datePicker :global(.MuiPopper-root) {
+  margin-top: 16px !important; /* Match location dropdown spacing */
+  left: 50% !important; /* Center horizontally like the location dropdown */
+  transform: translateX(-50%) !important; /* Center the calendar */
+  transform-origin: top center !important; /* Ensure proper origin for transforms */
+  z-index: 999 !important; /* Match the high z-index of the location dropdown */
+}
+
+/* Adjust the date/time wrapper to better match location input height */
+.dateTimeWrapper {
+  display: flex;
+  height: 26px; /* Slightly increase height to match location input */
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 2px; /* Add slight top margin to move entire row down */
+}
+
+/* Make time selector match the positioning */
+.timeSelect {
+  width: 48%;
+  border: none;
+  font-size: 14px;
+  outline: none;
+  background-color: transparent;
+  padding-left: 8px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: visible;
+  margin-left: 6px;
+  margin-top: 2px; /* Add slight top margin to align with date */
+}
