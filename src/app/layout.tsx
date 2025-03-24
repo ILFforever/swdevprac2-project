@@ -10,7 +10,7 @@ import ReduxProvider from "@/redux/ReduxProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Heritage Motoring - Luxury Car Rentals",
+  title: "CEDT Rentals - Luxury Car Rentals",
   description: "Experience timeless elegance with our curated collection of luxury vehicles.",
 };
 

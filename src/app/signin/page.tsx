@@ -5,8 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions';
 
 export const metadata: Metadata = {
-  title: 'Sign In | Heritage Motoring',
-  description: 'Sign in to your Heritage Motoring account',
+  title: 'Sign In | CEDT Rentals',
+  description: 'Sign in to your CEDT Rentals account',
 };
 
 interface PageProps {

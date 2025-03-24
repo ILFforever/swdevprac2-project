@@ -6,8 +6,8 @@ import Link from 'next/link';
 import getUserProfile from '@/libs/getUserProfile';
 
 export const metadata: Metadata = {
-  title: 'My Profile | Heritage Motoring',
-  description: 'View and manage your Heritage Motoring account',
+  title: 'My Profile | CEDT Rentals',
+  description: 'View and manage your CEDT rentals account',
 };
 
 export default async function ProfilePage() {

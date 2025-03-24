@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import RegisterForm from '@/components/RegisterForm';
 
 export const metadata: Metadata = {
-  title: 'Register | Heritage Motoring',
+  title: 'Register | CEDT Rentals',
   description: 'Create an account to book with us.',
 };
 

@@ -5,8 +5,8 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
-  title: 'Sign Out | Heritage Motoring',
-  description: 'Sign out of your Heritage Motoring account',
+  title: 'Sign Out | CEDT Rentals',
+  description: 'Sign out of your CEDT Rentals account',
 };
 
 interface PageProps {
@@ -35,7 +35,7 @@ export default async function SignOutPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-medium mb-4 font-serif">Sign Out</h1>
         
         <p className="text-gray-600 mb-8">
-          Are you sure you want to sign out of your Heritage Motoring account?
+          Are you sure you want to sign out of your CEDT rental account?
         </p>
         
         <ClientSignOutConfirmation callbackUrl={callbackUrl} />

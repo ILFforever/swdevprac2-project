@@ -7,7 +7,7 @@ import getUserReservations from '@/libs/getUserReservations';
 import { Reservation } from '@/types/dataTypes';
 
 export const metadata: Metadata = {
-  title: 'My Reservations | Heritage Motoring',
+  title: 'My Reservations | CEDT Rentals',
   description: 'View your vehicle reservations',
 };
 

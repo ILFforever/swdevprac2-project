@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Registration Successful | Heritage Motoring',
+  title: 'Registration Successful | CEDT Rentals',
   description: 'Your account has been created successfully',
 };
 
