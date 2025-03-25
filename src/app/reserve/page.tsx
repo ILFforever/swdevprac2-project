@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dayjs, { Dayjs } from "dayjs";
 import { useDispatch } from "react-redux";
-import { useAppSelector } from "@/redux/store";
 import { AppDispatch } from "@/redux/store";
 import { addBooking } from "@/redux/features/bookSlice";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -27,13 +26,13 @@ interface Car {
     tier: number;
     provider_id: string;
     manufactureDate: string;
+    isAvailable: boolean;
 }
 
-export default function Booking(){
+export default function Booking() {
     const { data: session } = useSession();
     const searchParams = useSearchParams();
-    const dispatch = useDispatch<AppDispatch>()
-    const venueItems = useAppSelector((state)=> state.bookSlice.bookItems)
+    const dispatch = useDispatch<AppDispatch>();
 
     const timeOptions = [
         '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', 
@@ -49,11 +48,21 @@ export default function Booking(){
     const [error, setError] = useState<string | null>(null);
     const [userData, setUserData] = useState<{
         name: string;
-        telephone_number: string;
+        telephone_number: string | undefined;  // Allow undefined
     } | null>(null);
 
+   interface Rent {
+    price: number;
+    duration: string;
+    startDate: string;
+    endDate: string;
+}
+
+const handleRent = (rent: Rent) => {
+    console.log(rent.price); // Access rent properties safely
+};
     const makeBooking = async () => {
-        if(nameLastname && tel && pickupDate && returnDate && pickupTime && returnTime && car){
+        if (nameLastname && tel && pickupDate && returnDate && pickupTime && returnTime && car) {
             // Check if car is available for selected dates
             const isAvailable = await checkCarAvailability(car._id, pickupDate, returnDate);
 
@@ -62,7 +71,7 @@ export default function Booking(){
                 return;
             }
 
-            const item:BookingItem ={
+            const item: BookingItem = {
                 nameLastname: nameLastname,
                 tel: tel,
                 car: car._id,
@@ -72,10 +81,10 @@ export default function Booking(){
                 returnTime: returnTime
             }
             console.log(item);
-            
+
             try {
                 // Send booking data to backend
-                const response = await fetch('/api/v1/rents', {
+                const response = await fetch(`${API_BASE_URL}/rents`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${session?.user?.token}`,
@@ -85,10 +94,9 @@ export default function Booking(){
                         startDate: item.bookDate,
                         returnDate: item.returnDate,
                         car: item.car,
-                        // Include other booking fields as needed
                     })
                 });
-    
+
                 if (response.ok) {
                     // Booking successful, dispatch to Redux store
                     dispatch(addBooking(item));
@@ -103,29 +111,39 @@ export default function Booking(){
             }
         }
     }
-    
 
-    // Function to check car availability
     const checkCarAvailability = async (carId: string, startDate: Dayjs, endDate: Dayjs) => {
         try {
-            const response = await fetch(`/api/v1/cars/${carId}/availability?startDate=${startDate.format('YYYY-MM-DD')}&endDate=${endDate.format('YYYY-MM-DD')}`, {
-                headers: {
-                    'Authorization': `Bearer ${session?.user?.token}`
-                }
+            // Fetch car details (including rents)
+            const response = await fetch(`${API_BASE_URL}/cars/${carId}`, {
+                headers: { Authorization: `Bearer ${session?.user?.token}` },
             });
-    
-            if (!response.ok) {
-                throw new Error('Failed to fetch car availability');
+
+            if (!response.ok) throw new Error('Failed to fetch car details');
+
+            const carData = await response.json();
+
+            // Check for availability based on the rents array
+            if (!carData.success || !carData.data) {
+                throw new Error('Invalid car data received');
             }
-    
-            const data = await response.json();
-            return data;
+
+            const rents = carData.data.rents || [];
+
+            // Check for overlaps in the booking dates
+            const isAvailable = !rents.some((rent: { startDate: string | number | dayjs.Dayjs | Date | null | undefined; returnDate: string | number | dayjs.Dayjs | Date | null | undefined; }) => {
+                const rentStartDate = dayjs(rent.startDate);
+                const rentEndDate = dayjs(rent.returnDate);
+                // If the rental period overlaps with the requested booking, return false
+                return (startDate.isBefore(rentEndDate) && endDate.isAfter(rentStartDate));
+            });
+
+            return isAvailable;
         } catch (error) {
             console.error('Error checking car availability:', error);
-            return null;
+            return false; // Default to unavailable in case of an error
         }
     };
-    
 
     const [nameLastname, setNameLastname] = useState<string>('');
     const [tel, setTel] = useState<string>('');
@@ -136,11 +154,11 @@ export default function Booking(){
 
     // Fetch car details and user profile
     useEffect(() => {
-        const carId = searchParams.get('carId');
-        const startDate = searchParams.get('startDate');
-        const endDate = searchParams.get('endDate');
-        const providedPickupTime = searchParams.get('pickupTime');
-        const providedReturnTime = searchParams.get('returnTime');
+        const carId = searchParams.get('carId') || '';  // Fallback to empty string
+        const startDate = searchParams.get('startDate') || ''; // Fallback to empty string
+        const endDate = searchParams.get('endDate') || ''; // Fallback to empty string
+        const providedPickupTime = searchParams.get('pickupTime') || '10:00 AM'; // Default time
+        const providedReturnTime = searchParams.get('returnTime') || '10:00 AM'; // Default time
 
         const fetchData = async () => {
             // Fetch car details
@@ -153,13 +171,13 @@ export default function Booking(){
             try {
                 // Fetch car details
                 const carResponse = await fetch(`${API_BASE_URL}/cars/${carId}`);
-                
+
                 if (!carResponse.ok) {
                     throw new Error('Failed to fetch car details');
                 }
 
                 const carData = await carResponse.json();
-                
+
                 if (carData.success && carData.data) {
                     setCar(carData.data);
                 } else {
@@ -169,7 +187,7 @@ export default function Booking(){
                 // Fetch user profile if session exists
                 if (session?.user?.token) {
                     const userProfileResponse = await getUserProfile(session.user.token);
-                    
+
                     if (userProfileResponse.success && userProfileResponse.data) {
                         setUserData({
                             name: userProfileResponse.data.name,
@@ -178,7 +196,7 @@ export default function Booking(){
 
                         // Prefill form with user data
                         setNameLastname(userProfileResponse.data.name);
-                        setTel(userProfileResponse.data.telephone_number);
+                        setTel(userProfileResponse.data.telephone_number || '');
                     }
                 }
             } catch (err) {
@@ -419,8 +437,8 @@ export default function Booking(){
                                 
                                 <div>
                                     <p className="text-sm text-gray-500">Status</p>
-                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                                        Available
+                                    <span className={`px-2 py-1 ${car?.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} rounded-full text-xs`}>
+                                    {car?.isAvailable ? 'Available' : 'Unavailable'}
                                     </span>
                                 </div>
                             </div>

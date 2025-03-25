@@ -187,15 +187,6 @@ const timeOptions = [
     }));
   };
 
-  // Handle dropdown toggle with additional functionality to keep it open
-  const toggleDropdown = (dropdown: string) => {
-    if (openDropdown === dropdown) {
-      setOpenDropdown(null);
-    } else {
-      setOpenDropdown(dropdown);
-    }
-  };
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
