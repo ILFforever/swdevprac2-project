@@ -5,6 +5,7 @@ import { API_BASE_URL } from '@/config/apiConfig';
 import { useSession } from 'next-auth/react';
 import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
+import { Check, Trash2, Eye } from "lucide-react";
 
 // Type definitions
 interface Car {
@@ -617,7 +618,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
 
   {/* Reservations Table */}
   {isLoading ? (
-    <div className="flex justify-center items-center h-64">
+    <div className="flex justify-center items-center h-64" >
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8A7D55]"></div>
     </div>
   ) : filteredReservations.length === 0 ? (
@@ -627,8 +628,9 @@ export default function ReservationManagement({ token }: ReservationManagementPr
     </div>
   ) : (
     <>
+
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200" style={{ height: 'auto' }}>
           <thead className="bg-gray-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
@@ -752,27 +754,18 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                       {reservation.status === 'pending' && (
                         <button 
                           onClick={() => handleReservationAction('confirm', reservation)}
-                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none mr-2"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 hover:bg-green-200 text-green-700 transition duration-200 mr-2"
                         >
-                          Confirm
+                          <Check className="w-4 h-4" />
                         </button>
                       )}
-                      
-                      {reservation.status === 'active' && (
-                        <button
-                          onClick={() => handleReservationAction('complete', reservation)} 
-                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none mr-2"
-                        >
-                          Complete
-                        </button>
-                      )}
-                      
+
                       {(reservation.status === 'pending' || reservation.status === 'active') && (
                         <button
                           onClick={() => handleReservationAction('cancel', reservation)}
-                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none"  
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-700 transition duration-200"
                         >
-                          Cancel
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
