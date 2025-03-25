@@ -112,12 +112,54 @@ export default function ReservationDetailsPage({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status: 'cancelled' })
-      });
+      } );
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to cancel reservation');
       }
+
+
+
+
+
+
+      const getcar = await fetch(`${API_BASE_URL}/rents/${params.reservationId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.user.token}`,
+          'Content-Type': 'application/json'
+        }
+      } );
+      if (!getcar.ok) {
+        throw new Error('Failed to fetch car ID');
+      }
+  
+      const getCarData = await getcar.json();
+      const carId = getCarData.carId;
+  
+      console.log(`Car ID for reservation ${params.reservationId}: ${carId}`);
+
+
+
+        const upcar = await fetch(`${API_BASE_URL}/cars/${carId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${session.user.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ available: true })
+        } );
+  
+        if (!upcar.ok) {
+          const errorData = await upcar.json();
+          throw new Error(errorData.message || 'Failed to cancel reservation');
+        }
+
+
+
+
+
 
       // Update local state
       setReservation(prev => ({
@@ -145,11 +187,7 @@ export default function ReservationDetailsPage({
   };
 
 
-  const handleDeleteReservation = (id) => {
-    // Logic to delete the reservation, e.g., API call
-    console.log(`Deleting reservation with ID: ${id}`);
-    // Update your state or notify the backend
-  };
+
 
   // Calculate rental period
   const calculateRentalPeriod = (startDate: string, returnDate: string) => {
