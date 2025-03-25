@@ -302,7 +302,7 @@ export default function ServicesPage() {
             </Link>
           ) : (
             <Link 
-              href="/booking" 
+              href="/catalog" 
               className="inline-block px-6 py-3 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
             >
               Book Now to Increase Your Tier
