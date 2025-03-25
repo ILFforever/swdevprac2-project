@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Search, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -365,7 +365,31 @@ export default function CatalogPage() {
       return true; // Assume available if no rent data
     });
   };
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const dropdownRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside all dropdown containers
+      const isOutsideDropdowns = Object.values(dropdownRefs.current).every(
+        ref => ref && !ref.contains(event.target as Node)
+      );
   
+      if (isOutsideDropdowns) {
+        setActiveDropdown(null);
+      }
+    };
+  
+    // Add event listener when a dropdown is open
+    if (activeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [activeDropdown]);
+  
+
   const filterOptions = extractFilterOptions();
   
   // Filter the cars
@@ -618,100 +642,131 @@ export default function CatalogPage() {
           
           {/* Filter buttons - styled better */}
           <div className="flex flex-wrap gap-2">
-            <div className="relative group">
-              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.vehicleType ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
-                <span className="text-sm">Vehicle type {activeFilters.vehicleType && `· ${activeFilters.vehicleType}`}</span>
-                <ChevronDown size={14} className="ml-1" />
-              </div>
-              
-              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
-                {filterOptions.vehicleType.map(type => (
-                  <div 
-                    key={type} 
-                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.vehicleType === type ? 'bg-gray-100 font-medium' : ''}`}
-                    onClick={() => toggleFilter('vehicleType', type)}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="relative group">
-              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.brand ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
-                <span className="text-sm">Make {activeFilters.brand && `· ${activeFilters.brand}`}</span>
-                <ChevronDown size={14} className="ml-1" />
-              </div>
-              
-              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
-                {filterOptions.brand.map(brand => (
-                  <div 
-                    key={brand} 
-                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.brand === brand ? 'bg-gray-100 font-medium' : ''}`}
-                    onClick={() => toggleFilter('brand', brand)}
-                  >
-                    {brand}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="relative group">
-              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.year ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
-                <span className="text-sm">Year {activeFilters.year && `· ${activeFilters.year}`}</span>
-                <ChevronDown size={14} className="ml-1" />
-              </div>
-              
-              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
-                {filterOptions.year.map(year => (
-                  <div 
-                    key={year} 
-                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.year === year ? 'bg-gray-100 font-medium' : ''}`}
-                    onClick={() => toggleFilter('year', year)}
-                  >
-                    {year}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="relative group">
-              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.seats ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
-                <span className="text-sm">Seats {activeFilters.seats && `· ${activeFilters.seats}`}</span>
-                <ChevronDown size={14} className="ml-1" />
-              </div>
-              
-              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
-                {filterOptions.seats.map(seat => (
-                  <div 
-                    key={seat} 
-                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.seats === seat ? 'bg-gray-100 font-medium' : ''}`}
-                    onClick={() => toggleFilter('seats', seat)}
-                  >
-                    {seat} seats
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="relative group">
-              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.provider ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
-                <span className="text-sm">Provider {activeFilters.provider && `· ${activeFilters.provider}`}</span>
-                <ChevronDown size={14} className="ml-1" />
-              </div>
-              
-              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
-                {filterOptions.provider.map(provider => (
-                  <div 
-                    key={provider} 
-                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.provider === provider ? 'bg-gray-100 font-medium' : ''}`}
-                    onClick={() => toggleFilter('provider', provider)}
-                  >
-                    {provider}
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-2">
+  {/* Vehicle Type Dropdown */}
+  <div 
+    ref={(el) => {if (el) {dropdownRefs.current['vehicleType'] = el;}}} 
+    className="relative group"
+  >
+    <div 
+      className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.vehicleType ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}
+      onClick={() => setActiveDropdown(prev => prev === 'vehicleType' ? null : 'vehicleType')}
+    >
+      <span className="text-sm">Vehicle type {activeFilters.vehicleType && `· ${activeFilters.vehicleType}`}</span>
+      <ChevronDown size={14} className="ml-1" />
+    </div>
+    
+    {activeDropdown === 'vehicleType' && (
+      <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px]">
+        {filterOptions.vehicleType.map(type => (
+          <div 
+            key={type} 
+            className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.vehicleType === type ? 'bg-gray-100 font-medium' : ''}`}
+            onClick={() => {
+              toggleFilter('vehicleType', type);
+              setActiveDropdown(null);
+            }}
+          >
+            {type}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* Brand Dropdown */}
+  <div 
+    ref={(el) => {if (el) {dropdownRefs.current['brand'] = el;}}} 
+    className="relative group"
+  >
+    <div 
+      className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.brand ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}
+      onClick={() => setActiveDropdown(prev => prev === 'brand' ? null : 'brand')}
+    >
+      <span className="text-sm">Make {activeFilters.brand && `· ${activeFilters.brand}`}</span>
+      <ChevronDown size={14} className="ml-1" />
+    </div>
+    
+    {activeDropdown === 'brand' && (
+      <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px]">
+        {filterOptions.brand.map(brand => (
+          <div 
+            key={brand} 
+            className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.brand === brand ? 'bg-gray-100 font-medium' : ''}`}
+            onClick={() => {
+              toggleFilter('brand', brand);
+              setActiveDropdown(null);
+            }}
+          >
+            {brand}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* Year Dropdown */}
+  <div 
+    ref={(el) => {if (el) {dropdownRefs.current['year'] = el;}}} 
+    className="relative group"
+  >
+    <div 
+      className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.year ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}
+      onClick={() => setActiveDropdown(prev => prev === 'year' ? null : 'year')}
+    >
+      <span className="text-sm">Year {activeFilters.year && `· ${activeFilters.year}`}</span>
+      <ChevronDown size={14} className="ml-1" />
+    </div>
+    
+    {activeDropdown === 'year' && (
+      <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px]">
+        {filterOptions.year.map(year => (
+          <div 
+            key={year} 
+            className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.year === year ? 'bg-gray-100 font-medium' : ''}`}
+            onClick={() => {
+              toggleFilter('year', year);
+              setActiveDropdown(null);
+            }}
+          >
+            {year}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* Seats Dropdown */}
+  <div 
+    ref={(el) => {if (el) {dropdownRefs.current['seats'] = el;}}} 
+    className="relative group"
+  >
+    <div 
+      className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.seats ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}
+      onClick={() => setActiveDropdown(prev => prev === 'seats' ? null : 'seats')}
+    >
+      <span className="text-sm">Seats {activeFilters.seats && `· ${activeFilters.seats}`}</span>
+      <ChevronDown size={14} className="ml-1" />
+    </div>
+    
+    {activeDropdown === 'seats' && (
+      <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px]">
+        {filterOptions.seats.map(seat => (
+          <div 
+            key={seat} 
+            className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.seats === seat ? 'bg-gray-100 font-medium' : ''}`}
+            onClick={() => {
+              toggleFilter('seats', seat);
+              setActiveDropdown(null);
+            }}
+          >
+            {seat} seats
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
             
             {/* Clear filters button */}
             {(Object.values(activeFilters).some(filter => filter !== '') || 
@@ -725,7 +780,7 @@ export default function CatalogPage() {
                 className="flex items-center px-3 py-1 border border-red-300 text-red-600 rounded-md cursor-pointer hover:bg-red-50 ml-auto text-sm transition-colors"
                 onClick={() => {
                   setActiveFilters({vehicleType: '', brand: '', year: '', seats: '', provider: ''});
-                  setPriceRange({min: 0, max: 500});
+                  setPriceRange({min: 0, max: Number.MAX_SAFE_INTEGER});
                   setDateRange({startDate: '', endDate: ''});
                   setSelectedLocation('');
                   setSearchQuery('');
