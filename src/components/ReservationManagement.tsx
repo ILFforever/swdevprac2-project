@@ -91,7 +91,52 @@ export default function ReservationManagement({ token }: ReservationManagementPr
 
   // Notes for reservation actions
   const [actionNotes, setActionNotes] = useState('');
-
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const initialSearchQuery = params.get('search');
+    if (initialSearchQuery) {
+      setSearchQuery(initialSearchQuery);  // Set the initial search query from the URL
+    }
+  }, []);
+  useEffect(() => {
+    let results = [...reservations];
+    
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      
+      results = results.filter(reservation => {
+        // Search in reservation ID
+        if (reservation._id.toLowerCase().includes(query)) return true;
+        
+        // Search in car details
+        const car = typeof reservation.car === 'string' 
+          ? cars[reservation.car]
+          : reservation.car as Car;
+          
+        if (car) {
+          if (car.brand?.toLowerCase().includes(query)) return true;
+          if (car.model?.toLowerCase().includes(query)) return true;
+          if (car.license_plate?.toLowerCase().includes(query)) return true;
+        }
+        
+        // Search in user details
+        const user = typeof reservation.user === 'string'
+          ? users[reservation.user]
+          : reservation.user as User;
+          
+        if (user) {
+          if (user.name?.toLowerCase().includes(query)) return true;
+          if (user.email?.toLowerCase().includes(query)) return true;
+          if (user.telephone_number?.toLowerCase().includes(query)) return true;
+        }
+        
+        return false;
+      });
+    }
+    
+    setFilteredReservations(results);
+  }, [searchQuery, statusFilter, dateRangeFilter, reservations, cars, users]);
   // Fetch all reservations
   useEffect(() => {
     const fetchReservations = async () => {
@@ -195,33 +240,40 @@ export default function ReservationManagement({ token }: ReservationManagementPr
   // Fetch user details by IDs
   const fetchUserDetails = async (userIds: string[]) => {
     try {
-      // Create a map to store user details
-      const userDetailsMap: {[key: string]: User} = {};
-      
-      // This is a placeholder - in a real system you'd have an API endpoint to get user details by ID
-      // For now, we'll just use the existing users endpoint as an example
-      const response = await fetch(`${API_BASE_URL}/auth/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
-          // Map users by ID for easy lookup
-          data.data.forEach((user: User) => {
-            userDetailsMap[user._id] = user;
-          });
+      const endpoints = [`/auth/users`, `/auth/admins`];
+      const userDetailsMap: { [key: string]: User } = {};
+
+      // Fetch both users and admins in parallel
+      const responses = await Promise.all(
+        endpoints.map(endpoint =>
+          fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+        )
+      );
+
+      // Process responses
+      for (const response of responses) {
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.data)) {
+            data.data.forEach((user: User) => {
+              userDetailsMap[user._id] = user;
+            });
+          }
         }
       }
-      
+
+      // Update state once after processing all responses
       setUsers(userDetailsMap);
     } catch (err) {
       console.error('Error fetching user details:', err);
     }
   };
+
 
   // Apply filters and search
   useEffect(() => {
@@ -437,6 +489,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
 
   // Get user details by ID or object
   const getUserDetails = (user: string | User): User | undefined => {
+    console.log(user)
     if (typeof user === 'string') {
       return users[user];
     }
@@ -548,7 +601,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
       </div>
       <input
         type="text"
-        placeholder="Search reservations by ID, car, or customer..."
+        placeholder="Search by ID, car, or customer..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
@@ -666,7 +719,10 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                    {/* Reservation ID */}
                    <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="text-gray-900 font-medium">
-                          {formatDate(reservation.createdAt).split(',')}
+                          {formatDate(reservation.createdAt).split(',')[0]+formatDate(reservation.createdAt).split(',')[1]}
+                        </div>
+                        <div className="text-gray-500 font-medium">
+                          {formatDate(reservation.createdAt).split(',')[2]}
                         </div>
                     </td>
                   
@@ -701,16 +757,16 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                     <div className="text-sm text-gray-900">
                       <div className="flex items-center">
                         <span className="text-xs font-medium text-gray-500 w-12">From:</span>
-                        <span>{formatDate(reservation.startDate).split(',')[0]}</span>
+                        <span>{formatDate(reservation.startDate).split(',')[0]+formatDate(reservation.startDate).split(',')[1]}</span>
                       </div>
                       <div className="flex items-center">
                         <span className="text-xs font-medium text-gray-500 w-12">Until:</span>
-                        <span>{formatDate(reservation.returnDate).split(',')[0]}</span>
+                        <span>{formatDate(reservation.returnDate).split(',')[0]+formatDate(reservation.returnDate).split(',')[1]}</span>
                       </div>
                       {reservation.actualReturnDate && (
                         <div className="flex items-center text-sm text-gray-500">
                           <span className="text-xs font-medium text-gray-500 w-12">Actual:</span>
-                          <span>{formatDate(reservation.actualReturnDate).split(',')[0]}</span>
+                          <span>{formatDate(reservation.actualReturnDate).split(',')[0]+formatDate(reservation.actualReturnDate).split(',')[1]}</span>
                         </div>
                       )}
                     </div>
@@ -751,23 +807,24 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                         </svg>
                       </button>
                       
-                      {reservation.status === 'pending' && (
-                        <button 
-                          onClick={() => handleReservationAction('confirm', reservation)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 hover:bg-green-200 text-green-700 transition duration-200 mr-2"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button 
+                        onClick={() => handleReservationAction('confirm', reservation)}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition duration-200 mr-2 ${
+                          reservation.status === 'completed' 
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'  // Greyed out when completed
+                            : 'bg-green-100 hover:bg-green-200 text-green-700' // Active when pending
+                        }`}
+                        disabled={reservation.status === 'completed'}
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
 
-                      {(reservation.status === 'pending' || reservation.status === 'active') && (
-                        <button
-                          onClick={() => handleReservationAction('cancel', reservation)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-700 transition duration-200"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleReservationAction('cancel', reservation)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-700 transition duration-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
