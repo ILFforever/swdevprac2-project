@@ -414,7 +414,7 @@ export default function CatalogPage() {
       bookingParams.set('endDate', dateRange.endDate);
     }
     
-    router.push(`/booking?${bookingParams.toString()}`);
+    router.push(`/reserve?${bookingParams.toString()}`);
   };
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
