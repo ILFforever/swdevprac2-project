@@ -1,10 +1,79 @@
-// src/app/catalog/page.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Search, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import {API_BASE_URL} from "@/config/apiConfig"
+import Image from 'next/image';
+import Link from 'next/link';
+
+// Type definitions
+interface Provider {
+  _id: string;
+  name: string;
+  address?: string;
+  telephone_number?: string;
+  email?: string;
+}
+
+interface Rent {
+  _id: string;
+  startDate: string;
+  returnDate: string;
+  status: 'pending' | 'active' | 'completed' | 'cancelled';
+}
+
+interface Car {
+  id: string;
+  _id?: string;
+  brand: string;
+  model: string;
+  year: number;
+  price: number;
+  type: string;
+  color?: string;
+  seats?: number;
+  providerId: string;
+  provider: string;
+  image?: string;
+  rents?: Rent[];
+  available?: boolean;
+  license_plate?: string;
+  manufactureDate?: string;
+  dailyRate?: number;
+  tier?: number;
+}
+
+interface ProvidersMap {
+  [key: string]: Provider;
+}
+
+interface PriceRange {
+  min: number;
+  max: number;
+}
+
+interface DateRange {
+  startDate: string;
+  endDate: string;
+}
+
+interface ActiveFilters {
+  vehicleType: string;
+  brand: string;
+  year: string;
+  seats: string;
+  provider: string;
+}
+
+interface FilterOptions {
+  vehicleType: string[];
+  brand: string[];
+  year: string[];
+  seats: string[];
+  provider: string[];
+}
 
 export default function CatalogPage() {
   const router = useRouter();
@@ -14,32 +83,33 @@ export default function CatalogPage() {
   const { data: session } = useSession();
   
   // Car data state
-  const [cars, setCars] = useState([]);
-  const [providers, setProviders] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [providers, setProviders] = useState<ProvidersMap>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Search state
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   
   // Price range state
-  const [priceRange, setPriceRange] = useState({
+  const [priceRange, setPriceRange] = useState<PriceRange>({
     min: 0,
-    max: 500
+    max: Number.MAX_SAFE_INTEGER
   });
   
   // Date range state
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRange>({
     startDate: searchParams.get('startDate') || '',
     endDate: searchParams.get('endDate') || ''
   });
   
-  
   // Location state
-  const [selectedLocation, setSelectedLocation] = useState(searchParams.get('location') || '');
+  const [selectedLocation, setSelectedLocation] = useState<string>(
+    searchParams.get('location') || ''
+  );
   
   // Filter states
-  const [activeFilters, setActiveFilters] = useState({
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     vehicleType: '',
     brand: '',
     year: '',
@@ -47,35 +117,96 @@ export default function CatalogPage() {
     provider: ''
   });
 
-  // Extract unique values for filter options from fetched data
-  const extractFilterOptions = () => {
-    if (!cars.length) return {
-      vehicleType: [],
-      brand: [],
-      year: [],
-      seats: [],
-      provider: []
+   function useLocationSuggestions() {
+    const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        
+        // Skip if clicking inside a dropdown or dropdown toggle
+        if (target.closest('.location-search-container') || 
+            target.closest('.location-suggestions')) {
+          return;
+        }
+        
+        setShowLocationSuggestions(false);
+      };
+  
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+  
+    return {
+      showLocationSuggestions,
+      setShowLocationSuggestions
     };
+  }
+  const { showLocationSuggestions, setShowLocationSuggestions } = useLocationSuggestions();
+  // Manage dropdown visibility states
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  // Extract unique values for filter options from fetched data
+  const extractFilterOptions = (): FilterOptions => {
+    if (!cars.length) {
+      return {
+        vehicleType: [],
+        brand: [],
+        year: [],
+        seats: [],
+        provider: []
+      };
+    }
     
     return {
-      vehicleType: [...new Set(cars.map(car => car.type))].filter(Boolean),
-      brand: [...new Set(cars.map(car => car.brand))].filter(Boolean),
-      year: [...new Set(cars.map(car => car.year?.toString()))].filter(Boolean),
-      seats: [...new Set(cars.map(car => car.seats?.toString()))].filter(Boolean),
-      provider: [...new Set(cars.map(car => car.provider))].filter(Boolean)
+      vehicleType: Array.from(new Set(cars.map(car => car.type).filter((type): type is string => !!type))),
+      brand: Array.from(new Set(cars.map(car => car.brand).filter((brand): brand is string => !!brand))),
+      year: Array.from(new Set(cars.map(car => car.year?.toString()).filter((year): year is string => !!year))),
+      seats: Array.from(new Set(cars.map(car => car.seats?.toString()).filter((seats): seats is string => !!seats))),
+      provider: Array.from(new Set(cars.map(car => car.provider).filter((provider): provider is string => !!provider)))
     };
   };
-  
+
   // Toggle filter selection
-  const toggleFilter = (category, value) => {
+  const toggleFilter = (category: keyof ActiveFilters, value: string): void => {
     setActiveFilters(prev => ({
       ...prev,
       [category]: prev[category] === value ? '' : value
     }));
   };
-  
+
+  // Handle dropdown toggle with additional functionality to keep it open
+  const toggleDropdown = (dropdown: string) => {
+    if (openDropdown === dropdown) {
+      setOpenDropdown(null);
+    } else {
+      setOpenDropdown(dropdown);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      // Skip if clicking inside a dropdown or dropdown toggle
+      if (target.closest('.filter-dropdown') || target.closest('.dropdown-toggle')) {
+        return;
+      }
+      
+      setOpenDropdown(null);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdown]);
+
   // Handle location and date changes
-  const updateSearch = (updates) => {
+  const updateSearch = (updates: Record<string, string>): void => {
     const newParams = new URLSearchParams(searchParams.toString());
     
     Object.entries(updates).forEach(([key, value]) => {
@@ -108,7 +239,7 @@ export default function CatalogPage() {
         };
         
         // Fetch providers first
-        const providersResponse = await fetch('http://localhost:5000/api/v1/Car_Provider', {
+        const providersResponse = await fetch(API_BASE_URL+'/Car_Provider', {
           headers: authHeader
         });
         
@@ -119,9 +250,9 @@ export default function CatalogPage() {
         const providersData = await providersResponse.json();
         
         // Create a map of provider IDs to provider objects for easy lookup
-        const providersMap = {};
+        const providersMap: ProvidersMap = {};
         if (providersData.success && Array.isArray(providersData.data)) {
-          providersData.data.forEach(provider => {
+          providersData.data.forEach((provider: Provider) => {
             providersMap[provider._id] = provider;
           });
           setProviders(providersMap);
@@ -144,7 +275,7 @@ export default function CatalogPage() {
         }
         
         // Then fetch cars
-        const carsResponse = await fetch(`http://localhost:5000/api/v1/cars${queryParams}`, {
+        const carsResponse = await fetch(API_BASE_URL+`/cars${queryParams}`, {
           headers: authHeader
         });
         
@@ -156,7 +287,7 @@ export default function CatalogPage() {
         
         // Map the API response to match our expected car format
         if (carsData.success && Array.isArray(carsData.data)) {
-          const formattedCars = carsData.data.map(car => {
+          const formattedCars: Car[] = carsData.data.map((car: any) => {
             // Get provider details from our providers map
             const provider = providersMap[car.provider_id] || { name: 'Unknown Provider' };
             
@@ -167,11 +298,17 @@ export default function CatalogPage() {
               year: car.manufactureDate ? new Date(car.manufactureDate).getFullYear() : 2023,
               price: car.dailyRate || 0,
               type: car.type || 'Other',
+              color: car.color || 'Unknown',
               seats: car.seats || 5,
               providerId: car.provider_id,
               provider: provider.name || 'Unknown Provider',
               rents: car.rents || [],
-              image: car.image || '/img/car-default.jpg'
+              available: car.available ?? true,
+              image: car.image || '/img/car-default.jpg',
+              license_plate: car.license_plate,
+              manufactureDate: car.manufactureDate,
+              dailyRate: car.dailyRate,
+              tier: car.tier
             };
           });
           setCars(formattedCars);
@@ -181,7 +318,7 @@ export default function CatalogPage() {
         }
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError(err.message || 'Failed to fetch data');
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
       } finally {
         setLoading(false);
       }
@@ -197,7 +334,7 @@ export default function CatalogPage() {
   }, [session, selectedLocation, dateRange.startDate, dateRange.endDate]);
   
   // Filter cars based on date availability
-  const filterAvailableCars = (carsList) => {
+  const filterAvailableCars = (carsList: Car[]): Car[] => {
     if (!dateRange.startDate || !dateRange.endDate) {
       return carsList; // Return all cars if no date range selected
     }
@@ -258,216 +395,259 @@ export default function CatalogPage() {
   // Further filter for availability based on dates
   const availableCars = filterAvailableCars(filteredCars);
 
+  // Handle booking a car
+  const handleBookCar = (carId: string) => {
+    if (!session) {
+      router.push('/signin?callbackUrl=/catalog');
+      return;
+    }
+    
+    // Navigate to booking page with car ID and dates if selected
+    const bookingParams = new URLSearchParams();
+    bookingParams.set('carId', carId);
+    
+    if (dateRange.startDate) {
+      bookingParams.set('startDate', dateRange.startDate);
+    }
+    
+    if (dateRange.endDate) {
+      bookingParams.set('endDate', dateRange.endDate);
+    }
+    
+    router.push(`/booking?${bookingParams.toString()}`);
+  };
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <header className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">
-            {loading ? 'Loading cars...' : 
-             error ? 'Error loading cars' : 
-             `${availableCars.length} cars available`}
-          </h1>
-          
-          {/* Sort dropdown */}
-          <div className="relative">
-            <div className="flex items-center bg-white border rounded-md px-3 py-2 cursor-pointer" onClick={() => document.getElementById('sortDropdown')?.classList.toggle('hidden')}>
-              <span className="mr-2">Sort by: Recommended</span>
-              <ChevronDown size={16} />
-            </div>
-            <div id="sortDropdown" className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 w-48 hidden">
-              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded bg-gray-100 font-medium">
-                Recommended
-              </div>
-              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
-                Price: Low to High
-              </div>
-              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
-                Price: High to Low
-              </div>
-              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
-                Provider
-              </div>
-              <div className="px-3 py-2 cursor-pointer hover:bg-gray-100 rounded">
-                Brand
-              </div>
-            </div>
+        <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-[#8A7D55]">
+              {loading ? 'Looking for vehicles...' : 
+               error ? 'Error loading cars' : 
+               'Available Vehicles'}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {!loading && !error && `${availableCars.length} premium cars ready for your journey`}
+              {error && 'We encountered an issue while fetching available cars'}
+            </p>
           </div>
+          
+          {!loading && !error && availableCars.length > 0 && (
+            <div className="bg-[#f8f5f0] px-4 py-2 rounded-lg">
+              <span className="font-medium text-[#8A7D55]">{availableCars.length}</span>
+              <span className="text-gray-700"> cars match your criteria</span>
+            </div>
+          )}
         </div>
         
-        {/* Filters and search */}
-        <div className="mb-6">
-          {/* Date range selector */}
-          <div className="mb-4 flex items-center">
-            <div className="mr-2 text-sm font-medium text-gray-700">Rental Period:</div>
-            <div className="flex-1 grid grid-cols-2 gap-4">
-              <div className="relative">
-                <div className="flex items-center">
-                  <span className="text-gray-500 mr-2">From</span>
+             {/* Filters and search */}
+        <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Date range selector - now more compact */}
+            <div className="col-span-2">
+              <div className="flex items-center space-x-4">
+                <div className="text-sm font-medium text-gray-700 whitespace-nowrap">Rental Period:</div>
+                <div className="flex space-x-2 flex-1">
                   <div className="flex-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-2 text-xs">From</span>
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                        </div>
+                        <input
+                          type="date"
+                          value={dateRange.startDate}
+                          onChange={(e) => {
+                            setDateRange({...dateRange, startDate: e.target.value});
+                            updateSearch({startDate: e.target.value});
+                          }}
+                          className="block w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-xs"
+                        />
+                      </div>
                     </div>
-                    <input
-                      type="date"
-                      value={dateRange.startDate}
-                      onChange={(e) => {
-                        setDateRange({...dateRange, startDate: e.target.value});
-                        updateSearch({startDate: e.target.value});
-                      }}
-                      className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-                    />
                   </div>
-                </div>
-              </div>
-              
-              <div className="relative">
-                <div className="flex items-center">
-                  <span className="text-gray-500 mr-2">Until</span>
+                  
                   <div className="flex-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-2 text-xs">Until</span>
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                        </div>
+                        <input
+                          type="date"
+                          value={dateRange.endDate}
+                          min={dateRange.startDate || undefined}
+                          onChange={(e) => {
+                            setDateRange({...dateRange, endDate: e.target.value});
+                            updateSearch({endDate: e.target.value});
+                          }}
+                          className="block w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-xs"
+                        />
+                      </div>
                     </div>
-                    <input
-                      type="date"
-                      value={dateRange.endDate}
-                      min={dateRange.startDate || undefined}
-                      onChange={(e) => {
-                        setDateRange({...dateRange, endDate: e.target.value});
-                        updateSearch({endDate: e.target.value});
-                      }}
-                      className="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-                    />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Location selector */}
-          <div className="mb-4 relative">
-            <div className="mr-2 text-sm font-medium text-gray-700 mb-2">Location:</div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
+
+                    {/* Location selector - more compact */}
+                    <div className="relative">
+              <div className="flex items-center">
+                <div className="text-sm font-medium text-gray-700 mr-2 whitespace-nowrap">Location:</div>
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Enter city or provider..."
+                    value={selectedLocation}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedLocation(value);
+                      updateSearch({location: value});
+                      // Show suggestions if there's a value
+                      setShowLocationSuggestions(value.trim() !== '');
+                    }}
+                    onFocus={(e) => {
+                      // Show suggestions if there's a value when focused
+                      if (e.target.value.trim() !== '') {
+                        setShowLocationSuggestions(true);
+                      }
+                    }}
+                    className="block w-full pl-7 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-sm placeholder-opacity-50 focus:placeholder-opacity-0"
+                  />
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder="Enter city or car provider name..."
-                value={selectedLocation}
-                onChange={(e) => {
-                  setSelectedLocation(e.target.value);
-                  updateSearch({location: e.target.value});
-                }}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-              />
+              
+              {/* Location suggestions */}
+              {filterOptions.provider.length > 0 && selectedLocation && showLocationSuggestions && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-56 overflow-auto">
+                  {filterOptions.provider
+                    .filter(provider => provider.toLowerCase().includes(selectedLocation.toLowerCase()))
+                    .map((provider, index) => (
+                      <div
+                        key={index}
+                        className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                        onClick={(e) => {
+                          setSelectedLocation(provider);
+                          updateSearch({location: provider});
+                          setShowLocationSuggestions(false);
+                          
+                          // Type-safe way to remove focus from the input
+                          if (e.currentTarget.closest('.relative')?.querySelector('input')) {
+                            (e.currentTarget.closest('.relative')?.querySelector('input') as HTMLInputElement).blur();
+                          }
+                        }}
+                      >
+                        {provider}
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
             </div>
             
-            {/* Location suggestions */}
-            {filterOptions.provider.length > 0 && selectedLocation && (
-              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-56 overflow-auto">
-                {filterOptions.provider
-                  .filter(provider => provider.toLowerCase().includes(selectedLocation.toLowerCase()))
-                  .map((provider, index) => (
-                    <div
-                      key={index}
-                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                      onClick={() => {
-                        setSelectedLocation(provider);
-                        updateSearch({location: provider});
-                      }}
-                    >
-                      {provider}
+            {/* Second row */}
+            <div className="md:col-span-2">
+              {/* Price range selector - lowercase from/until */}
+              <div className="flex items-center">
+                <div className="text-sm font-medium text-gray-700 mr-2 whitespace-nowrap">Price Range:</div>
+                <div className="flex-1 flex space-x-3 items-center">
+                  <div className="flex-1 relative">
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1 text-xs">from</span>
+                      <div className="flex-1 relative">
+                        <span className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-gray-400">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={priceRange.max}
+                          value={priceRange.min}
+                          onChange={(e) => setPriceRange({...priceRange, min: parseInt(e.target.value) || 0})}
+                          className="block w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-sm"
+                        />
+                      </div>
                     </div>
-                  ))
-                }
-              </div>
-            )}
-          </div>
-          
-          {/* Price range selector */}
-          <div className="mb-4 flex items-center">
-            <div className="mr-2 text-sm font-medium text-gray-700">Price Range:</div>
-            <div className="flex-1 grid grid-cols-2 gap-4">
-              <div className="relative">
-                <div className="flex items-center">
-                  <span className="text-gray-500 mr-2">From</span>
-                  <div className="flex-1 relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={priceRange.max}
-                      value={priceRange.min}
-                      onChange={(e) => setPriceRange({...priceRange, min: parseInt(e.target.value) || 0})}
-                      className="block w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-                    />
                   </div>
-                  <ChevronDown className="ml-1 h-4 w-4 text-gray-400" />
+                  
+                  <div className="flex-1 relative">
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1 text-xs">until</span>
+                      <div className="flex-1 relative">
+                        <span className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-gray-400">$</span>
+                        <input
+                          type="text"
+                          min={priceRange.min}
+                          value={priceRange.max === Number.MAX_SAFE_INTEGER ? "" : priceRange.max}
+                          onChange={(e) => setPriceRange({...priceRange, max: parseInt(e.target.value) || 0})}
+                          className="block w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => setPriceRange({min: 0, max: Number.MAX_SAFE_INTEGER})}
+                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+                  >
+                    Reset
+                  </button>
                 </div>
               </div>
-              
+            </div>
+            
+            <div>
+              {/* Search input */}
               <div className="relative">
-                <div className="flex items-center">
-                  <span className="text-gray-500 mr-2">Until</span>
-                  <div className="flex-1 relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">$</span>
-                    <input
-                      type="number"
-                      min={priceRange.min}
-                      value={priceRange.max}
-                      onChange={(e) => setPriceRange({...priceRange, max: parseInt(e.target.value) || 0})}
-                      className="block w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-                    />
-                  </div>
-                  <ChevronDown className="ml-1 h-4 w-4 text-gray-400" />
+                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
                 </div>
+                <input
+                  type="text"
+                  placeholder="Search by model, brand..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-7 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-sm placeholder-opacity-50 focus:placeholder-opacity-0"
+                />
               </div>
             </div>
           </div>
           
-          {/* Other search filters */}
-          <div className="mb-4 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search by car model or brand..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] sm:text-sm"
-            />
-          </div>
-          
+          {/* Filter buttons - styled better */}
           <div className="flex flex-wrap gap-2">
             <div className="relative group">
-              <div className={`flex items-center px-3 py-2 border rounded-full cursor-pointer ${activeFilters.vehicleType ? 'bg-[#8A7D55] text-white' : 'bg-white'}`}>
-                <span>Vehicle type {activeFilters.vehicleType && `· ${activeFilters.vehicleType}`}</span>
+              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.vehicleType ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
+                <span className="text-sm">Vehicle type {activeFilters.vehicleType && `· ${activeFilters.vehicleType}`}</span>
+                <ChevronDown size={14} className="ml-1" />
               </div>
               
-              <div className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 min-w-[150px] hidden group-hover:block">
+              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
                 {filterOptions.vehicleType.map(type => (
                   <div 
                     key={type} 
-                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${activeFilters.vehicleType === type ? 'bg-gray-100 font-medium' : ''}`}
+                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.vehicleType === type ? 'bg-gray-100 font-medium' : ''}`}
                     onClick={() => toggleFilter('vehicleType', type)}
                   >
-                    {type}
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
                   </div>
                 ))}
               </div>
             </div>
             
             <div className="relative group">
-              <div className={`flex items-center px-3 py-2 border rounded-full cursor-pointer ${activeFilters.brand ? 'bg-[#8A7D55] text-white' : 'bg-white'}`}>
-                <span>Make {activeFilters.brand && `· ${activeFilters.brand}`}</span>
+              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.brand ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
+                <span className="text-sm">Make {activeFilters.brand && `· ${activeFilters.brand}`}</span>
+                <ChevronDown size={14} className="ml-1" />
               </div>
               
-              <div className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 min-w-[150px] hidden group-hover:block">
+              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
                 {filterOptions.brand.map(brand => (
                   <div 
                     key={brand} 
-                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${activeFilters.brand === brand ? 'bg-gray-100 font-medium' : ''}`}
+                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.brand === brand ? 'bg-gray-100 font-medium' : ''}`}
                     onClick={() => toggleFilter('brand', brand)}
                   >
                     {brand}
@@ -477,15 +657,16 @@ export default function CatalogPage() {
             </div>
             
             <div className="relative group">
-              <div className={`flex items-center px-3 py-2 border rounded-full cursor-pointer ${activeFilters.year ? 'bg-[#8A7D55] text-white' : 'bg-white'}`}>
-                <span>Year {activeFilters.year && `· ${activeFilters.year}`}</span>
+              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.year ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
+                <span className="text-sm">Year {activeFilters.year && `· ${activeFilters.year}`}</span>
+                <ChevronDown size={14} className="ml-1" />
               </div>
               
-              <div className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 min-w-[150px] hidden group-hover:block">
+              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
                 {filterOptions.year.map(year => (
                   <div 
                     key={year} 
-                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${activeFilters.year === year ? 'bg-gray-100 font-medium' : ''}`}
+                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.year === year ? 'bg-gray-100 font-medium' : ''}`}
                     onClick={() => toggleFilter('year', year)}
                   >
                     {year}
@@ -495,15 +676,16 @@ export default function CatalogPage() {
             </div>
             
             <div className="relative group">
-              <div className={`flex items-center px-3 py-2 border rounded-full cursor-pointer ${activeFilters.seats ? 'bg-[#8A7D55] text-white' : 'bg-white'}`}>
-                <span>Seats {activeFilters.seats && `· ${activeFilters.seats}`}</span>
+              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.seats ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
+                <span className="text-sm">Seats {activeFilters.seats && `· ${activeFilters.seats}`}</span>
+                <ChevronDown size={14} className="ml-1" />
               </div>
               
-              <div className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 min-w-[150px] hidden group-hover:block">
+              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
                 {filterOptions.seats.map(seat => (
                   <div 
                     key={seat} 
-                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${activeFilters.seats === seat ? 'bg-gray-100 font-medium' : ''}`}
+                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.seats === seat ? 'bg-gray-100 font-medium' : ''}`}
                     onClick={() => toggleFilter('seats', seat)}
                   >
                     {seat} seats
@@ -513,15 +695,16 @@ export default function CatalogPage() {
             </div>
             
             <div className="relative group">
-              <div className={`flex items-center px-3 py-2 border rounded-full cursor-pointer ${activeFilters.provider ? 'bg-[#8A7D55] text-white' : 'bg-white'}`}>
-                <span>Provider {activeFilters.provider && `· ${activeFilters.provider}`}</span>
+              <div className={`flex items-center px-3 py-1 border rounded-md cursor-pointer transition-colors ${activeFilters.provider ? 'bg-[#8A7D55] text-white border-[#766b48]' : 'bg-white hover:bg-gray-50 border-gray-300'}`}>
+                <span className="text-sm">Provider {activeFilters.provider && `· ${activeFilters.provider}`}</span>
+                <ChevronDown size={14} className="ml-1" />
               </div>
               
-              <div className="absolute left-0 top-full mt-2 bg-white shadow-lg rounded-lg p-2 z-10 min-w-[150px] hidden group-hover:block">
+              <div className="absolute left-0 top-full mt-1 bg-white shadow-lg rounded-md p-1 z-10 min-w-[150px] hidden group-hover:block">
                 {filterOptions.provider.map(provider => (
                   <div 
                     key={provider} 
-                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 rounded ${activeFilters.provider === provider ? 'bg-gray-100 font-medium' : ''}`}
+                    className={`px-3 py-1.5 cursor-pointer hover:bg-gray-100 rounded text-sm ${activeFilters.provider === provider ? 'bg-gray-100 font-medium' : ''}`}
                     onClick={() => toggleFilter('provider', provider)}
                   >
                     {provider}
@@ -538,8 +721,8 @@ export default function CatalogPage() {
               dateRange.endDate ||
               selectedLocation || 
               searchQuery) && (
-              <div 
-                className="flex items-center px-3 py-2 border border-red-300 text-red-600 rounded-full cursor-pointer hover:bg-red-50"
+              <button 
+                className="flex items-center px-3 py-1 border border-red-300 text-red-600 rounded-md cursor-pointer hover:bg-red-50 ml-auto text-sm transition-colors"
                 onClick={() => {
                   setActiveFilters({vehicleType: '', brand: '', year: '', seats: '', provider: ''});
                   setPriceRange({min: 0, max: 500});
@@ -551,7 +734,7 @@ export default function CatalogPage() {
                 }}
               >
                 <span>Clear all filters</span>
-              </div>
+              </button>
             )}
           </div>
         </div>
@@ -562,12 +745,12 @@ export default function CatalogPage() {
         <div className="text-center py-10">
           <h3 className="text-xl font-medium text-red-600">Authentication Required</h3>
           <p className="text-gray-600 mt-2">Please sign in to view available cars.</p>
-          <a 
+          <Link 
             href="/signin?callbackUrl=/catalog" 
             className="mt-4 px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] inline-block"
           >
             Sign In
-          </a>
+          </Link>
         </div>
       )}
       
@@ -594,23 +777,29 @@ export default function CatalogPage() {
       
       {/* Cars grid - only show when we have data and no errors */}
       {!loading && !error && session && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {availableCars.map((car) => (
-            <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md">
-              <div className="relative">
-                <img 
-                  src={car.image} 
+            <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
+              <div className="relative h-48">
+                <Image 
+                  src={car.image || '/img/car-default.jpg'} 
                   alt={`${car.brand} ${car.model}`} 
-                  className="w-full h-48 object-cover"
+                  fill
+                  className="object-cover"
                 />
+                {!car.available && (
+                  <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+                    <span className="text-white font-bold text-lg">Currently Rented</span>
+                  </div>
+                )}
               </div>
               
               <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h2 className="text-lg font-bold">{car.brand} {car.model} {car.year}</h2>
+                    <h2 className="text-lg font-bold">{car.brand} {car.model}</h2>
                     <p className="text-sm text-gray-600 -mt-1">
-                      Provided by <span className="font-medium text-blue-700">{car.provider}</span>
+                      {car.year} •  <span className="font-medium text-[#8A7D55]">{car.provider}</span>
                     </p>
                   </div>
                   <div className="text-right">
@@ -621,16 +810,36 @@ export default function CatalogPage() {
                 
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
-                    {car.type}
+                    {car.type.charAt(0).toUpperCase() + car.type.slice(1)}
                   </span>
-                  <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
-                    {car.seats} seats
-                  </span>
+                  {car.seats && (
+                    <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
+                      {car.seats} seats
+                    </span>
+                  )}
+                  {car.color && (
+                    <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
+                      {car.color}
+                    </span>
+                  )}
+                  {car.tier !== undefined && (
+                    <span className="px-3 py-1 bg-[#f8f5f0] text-[#8A7D55] text-xs rounded-full font-medium">
+                      Tier {car.tier}
+                    </span>
+                  )}
                 </div>
                 
                 <div className="mt-4">
-                  <button className="w-full py-2.5 bg-[#8A7D55] hover:bg-[#766b48] text-white rounded-md text-sm font-medium transition-colors duration-200 shadow-sm">
-                    Book Now
+                  <button 
+                    className={`w-full py-2.5 ${
+                      car.available 
+                        ? 'bg-[#8A7D55] hover:bg-[#766b48] text-white' 
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    } rounded-md text-sm font-medium transition-colors duration-200 shadow-sm`}
+                    onClick={() => car.available && handleBookCar(car.id)}
+                    disabled={!car.available}
+                  >
+                    {car.available ? 'Book Now' : 'Not Available'}
                   </button>
                 </div>
               </div>
