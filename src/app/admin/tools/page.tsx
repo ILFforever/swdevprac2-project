@@ -74,7 +74,7 @@ export default async function AdminToolsPage() {
         {/* Admin View Any Booking Panel */}
         <div className="bg-white p-6 rounded-lg shadow-md md:col-span-2">
           <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Manage Bookings</h2>
-          <p className="text-gray-600 mb-4">Search and view comprehensive details about any booking in the system.</p>
+          <p className="text-gray-600 mb-4">Search, view and edit details about any booking in the system.</p>
           <div className="mb-4">
             <div className="relative">
               <input 
@@ -90,7 +90,7 @@ export default async function AdminToolsPage() {
             </div>
           </div>
           <Link 
-            href="/admin-tools/all-bookings" 
+            href="/admin/manageReservations" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
           >
             View All Bookings
