@@ -6,7 +6,7 @@ import { User, ApiResponse } from '@/types/dataTypes';
 import { useSession } from 'next-auth/react';
 import { getTierName, getTierColorClass } from '@/utils/tierUtils';
 import TierBadge from '@/components/TierBadge';
-//update spelling please push github
+
 interface UserManagementProps {
   token: string;
 }
@@ -22,10 +22,12 @@ interface UserFormData {
 export default function UserManagement({ token }: UserManagementProps) {
   const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState<UserFormData>({
     name: '',
     email: '',
@@ -43,6 +45,20 @@ export default function UserManagement({ token }: UserManagementProps) {
       password: '',
       confirmPassword: '',
     });
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    // Filter users based on name or email
+    const filtered = users.filter(user => 
+      user.name.toLowerCase().includes(query) || 
+      user.email.toLowerCase().includes(query)
+    );
+
+    setFilteredUsers(filtered);
   };
 
   // Handle cancel button click
@@ -71,11 +87,6 @@ export default function UserManagement({ token }: UserManagementProps) {
     setError('');
     
     try {
-      // Log the token to check if it's available
-      console.log('Auth token available:', !!token);
-      console.log('Authorization header:', `Bearer ${token.substring(0, 10)}...`);
-      
-      // Use the auth/users endpoint as specified in the router definition
       const response = await fetch(`${API_BASE_URL}/auth/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,6 +107,7 @@ export default function UserManagement({ token }: UserManagementProps) {
       // Handle the response format
       if (data.success && Array.isArray(data.data)) {
         setUsers(data.data);
+        setFilteredUsers(data.data); // Initialize filtered users with all users
       } else {
         throw new Error('Unexpected response format from server');
       }
@@ -258,21 +270,51 @@ export default function UserManagement({ token }: UserManagementProps) {
         </div>
       )}
 
-      {/* Create User Button */}
-      <div className="mb-6 flex justify-end">
-        <button
-          onClick={() => {
-            if (showCreateForm) {
-              handleCancelCreate();
-            } else {
-              setShowCreateForm(true);
-            }
-          }}
-          className="px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
-        >
-          {showCreateForm ? 'Cancel' : 'Create New User'}
-        </button>
-      </div>
+    {/* Search and Create Section */}
+    <div className="flex items-center justify-between mb-6 space-x-4">
+        {/* Search Input with Icon */}
+        <div className="flex-grow relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search users by name or email"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:border-[#8A7D55] transition-all duration-300 ease-in-out"
+          />
+        </div>
+    {/* Create User Button with Icon */}
+    <button
+            onClick={() => {
+                if (showCreateForm) {
+                handleCancelCreate();
+                } else {
+                setShowCreateForm(true);
+                }
+            }}
+            className="flex items-center justify-center px-4 py-2 bg-[#8A7D55] text-white rounded-lg hover:bg-[#766b48] transition-colors focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:ring-opacity-50"
+            >
+            {showCreateForm ? (
+                <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+                </>
+            ) : (
+                <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create New User
+                </>
+            )}
+            </button>
+        </div>
 
       {/* Create User Form */}
       {showCreateForm && (
@@ -377,9 +419,9 @@ export default function UserManagement({ token }: UserManagementProps) {
       <div className="overflow-x-auto">
         <h2 className="text-xl font-medium mb-4">Current Users</h2>
         
-        {isLoading && !users.length ? (
+        {isLoading && !filteredUsers.length ? (
           <p className="text-center py-4">Loading users...</p>
-        ) : users.length === 0 ? (
+        ) : filteredUsers.length === 0 ? (
           <p className="text-center py-4 text-gray-600">No users found.</p>
         ) : (
           <table className="min-w-full divide-y divide-gray-200">
@@ -409,7 +451,7 @@ export default function UserManagement({ token }: UserManagementProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <tr key={user._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.name}</div>

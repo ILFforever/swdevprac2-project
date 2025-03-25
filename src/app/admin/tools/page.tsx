@@ -24,8 +24,8 @@ export default async function AdminToolsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Create New Admin Panel */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Create New Admin</h2>
-          <p className="text-gray-600 mb-4">Create a new administrator account with full system access.</p>
+          <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Manage Admins</h2>
+          <p className="text-gray-600 mb-4">Create and Manage administrator accounts.</p>
           <Link 
             href="/admin/manageAdmins" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
@@ -49,10 +49,10 @@ export default async function AdminToolsPage() {
         
         {/* Create New Car Provider Panel */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Create New Car Provider</h2>
-          <p className="text-gray-600 mb-4">Add a new car provider or rental company to the system.</p>
+          <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Manage Car Providers</h2>
+          <p className="text-gray-600 mb-4">Add or manage car providers or rental companies.</p>
           <Link 
-            href="/admin/managecarproviders" 
+            href="/admin/manageCarproviders" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
           >
             Manage Providers
@@ -61,10 +61,10 @@ export default async function AdminToolsPage() {
         
         {/* Create New Car Panel */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Create New Car</h2>
+          <h2 className="text-xl font-medium mb-4 text-[#8A7D55]">Manage Cars</h2>
           <p className="text-gray-600 mb-4">Add a new vehicle to the rental fleet.</p>
           <Link 
-            href="/admin-tools/cars" 
+            href="/admin/manageCars" 
             className="inline-block px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
           >
             Manage Cars
