@@ -631,10 +631,6 @@ export default function Booking() {
                 'Confirm Reservation'
               )}
             </button>
-            
-            <p className="mt-4 text-sm text-gray-500">
-              By confirming, you agree to our <Link href="/terms" className="text-[#8A7D55]">Terms and Conditions</Link>
-            </p>
           </div>
         </main>
       );}

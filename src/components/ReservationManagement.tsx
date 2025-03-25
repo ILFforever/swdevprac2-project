@@ -81,7 +81,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
   const [processingAction, setProcessingAction] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState<{
     show: boolean;
-    action: 'confirm' | 'complete' | 'cancel' | null;
+    action: 'confirm' | 'complete' | 'delete' | null;
     reservationId: string;
   }>({
     show: false,
@@ -337,7 +337,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
   // Handle reservation confirmation (change from pending to active)
   const confirmReservation = async (reservationId: string) => {
     setProcessingAction(true);
-    
+    console.log("PRESSED CONFIRM")
     try {
       const response = await fetch(`${API_BASE_URL}/rents/${reservationId}/confirm`, {
         method: 'PUT',
@@ -429,7 +429,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
   };
 
   // Handle reservation cancellation
-  const cancelReservation = async (reservationId: string) => {
+  const deleteReservation = async (reservationId: string) => {
     setProcessingAction(true);
     
     try {
@@ -489,7 +489,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
 
   // Get user details by ID or object
   const getUserDetails = (user: string | User): User | undefined => {
-    console.log(user)
+    // console.log(user)
     if (typeof user === 'string') {
       return users[user];
     }
@@ -552,7 +552,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
   };
 
   // Handle reservation action
-  const handleReservationAction = (action: 'confirm' | 'complete' | 'cancel', reservation: Reservation) => {
+  const handleReservationAction = (action: 'confirm' | 'complete' | 'delete', reservation: Reservation) => {
     setConfirmationModal({
       show: true,
       action,
@@ -572,8 +572,8 @@ export default function ReservationManagement({ token }: ReservationManagementPr
       case 'complete':
         completeReservation(confirmationModal.reservationId);
         break;
-      case 'cancel':
-        cancelReservation(confirmationModal.reservationId);
+      case 'delete':
+        deleteReservation(confirmationModal.reservationId);
         break;
     }
   };
@@ -820,7 +820,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                       </button>
 
                       <button
-                        onClick={() => handleReservationAction('cancel', reservation)}
+                        onClick={() => handleReservationAction('delete', reservation)}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-700 transition duration-200"
                       >
                         <Trash2 className="w-4 h-4" />
