@@ -102,7 +102,17 @@ export default function CatalogPage() {
     startDate: searchParams.get('startDate') || '',
     endDate: searchParams.get('endDate') || ''
   });
-  
+
+  const [timePickup, setTimePickup] = useState<string>(searchParams.get('pickupTime') || '10:00 AM');
+const [timeReturn, setTimeReturn] = useState<string>(searchParams.get('returnTime') || '10:00 AM');
+const timeOptions = [
+  '8:00 AM', '8:30 AM', '9:00 AM', '9:30 AM', 
+  '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM',
+  '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM',
+  '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM',
+  '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM'
+];
   // Location state
   const [selectedLocation, setSelectedLocation] = useState<string>(
     searchParams.get('location') || ''
@@ -206,19 +216,19 @@ export default function CatalogPage() {
   }, [openDropdown]);
 
   // Handle location and date changes
-  const updateSearch = (updates: Record<string, string>): void => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-    
-    router.push(`/catalog?${newParams.toString()}`);
-  };
+const updateSearch = (updates: Record<string, string>): void => {
+  const newParams = new URLSearchParams(searchParams.toString());
+  
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value) {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
+    }
+  });
+  
+  router.push(`/catalog?${newParams.toString()}`);
+};
   
   // Fetch car data and providers from API
   useEffect(() => {
@@ -335,27 +345,40 @@ export default function CatalogPage() {
   
   // Filter cars based on date availability
   const filterAvailableCars = (carsList: Car[]): Car[] => {
-    if (!dateRange.startDate || !dateRange.endDate) {
-      return carsList; // Return all cars if no date range selected
+    // If no start date is provided, return all cars
+    if (!dateRange.startDate) {
+      return carsList;
     }
     
+    // If no end date, use start date as end date
     const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
+    const end = dateRange.endDate 
+      ? new Date(dateRange.endDate) 
+      : new Date(dateRange.startDate);
+    
+    // Ensure end date is not before start date
+    if (end < start) {
+      end.setTime(start.getTime());
+    }
     
     return carsList.filter(car => {
       // If car has rents array, check if any bookings overlap with selected dates
       if (car.rents && Array.isArray(car.rents)) {
-        const conflictingRent = car.rents.find(rent => {
+        const activeRents = car.rents.filter(rent => 
+          rent.status === 'active' || rent.status === 'pending'
+        );
+
+        const conflictingRent = activeRents.find(rent => {
           if (!rent.startDate || !rent.returnDate) return false;
           
           const rentStart = new Date(rent.startDate);
           const rentEnd = new Date(rent.returnDate);
           
-          // Check for overlap
+          // Check for complete time-based overlap
           return (
-            (rentStart <= end && rentEnd >= start) ||
-            (rentStart <= start && rentEnd >= start) ||
-            (rentStart <= end && rentEnd >= end)
+            (rentStart < end && rentEnd > start) ||  // Overlapping period
+            (start >= rentStart && start < rentEnd) ||  // Start date within rent period
+            (end > rentStart && end <= rentEnd)  // End date within rent period
           );
         });
         
@@ -426,7 +449,7 @@ export default function CatalogPage() {
       return;
     }
     
-    // Navigate to booking page with car ID and dates if selected
+    // Navigate to booking page with car ID and dates/times if selected
     const bookingParams = new URLSearchParams();
     bookingParams.set('carId', carId);
     
@@ -438,8 +461,18 @@ export default function CatalogPage() {
       bookingParams.set('endDate', dateRange.endDate);
     }
     
+    // Add time parameters
+    if (timePickup) {
+      bookingParams.set('pickupTime', timePickup);
+    }
+    
+    if (timeReturn) {
+      bookingParams.set('returnTime', timeReturn);
+    }
+    
     router.push(`/reserve?${bookingParams.toString()}`);
   };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <header className="mb-6">
@@ -472,9 +505,11 @@ export default function CatalogPage() {
               <div className="flex items-center space-x-4">
                 <div className="text-sm font-medium text-gray-700 whitespace-nowrap">Rental Period:</div>
                 <div className="flex space-x-2 flex-1">
-                  <div className="flex-1 relative">
-                    <div className="flex items-center">
-                      <span className="text-gray-500 mr-2 text-xs">From</span>
+                <div className="flex-1 relative">
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-2 text-xs">From</span>
+                    <div className="flex-1 relative flex space-x-1">
+                      {/* Date input */}
                       <div className="flex-1 relative">
                         <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
                           <Calendar className="h-3 w-3 text-gray-400" />
@@ -489,12 +524,28 @@ export default function CatalogPage() {
                           className="block w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-xs"
                         />
                       </div>
+                      
+                      {/* Time select */}
+                      <select
+                        value={timePickup}
+                        onChange={(e) => {
+                          setTimePickup(e.target.value);
+                          updateSearch({pickupTime: e.target.value});
+                        }}
+                        className="border border-gray-300 rounded-md text-xs py-1 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55]"
+                      >
+                        {timeOptions.map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
+                </div>
                   
-                  <div className="flex-1 relative">
-                    <div className="flex items-center">
-                      <span className="text-gray-500 mr-2 text-xs">Until</span>
+                <div className="flex-1 relative">
+                  <div className="flex items-center">
+                    <span className="text-gray-500 mr-2 text-xs">Until</span>
+                    <div className="flex-1 flex items-center space-x-2">
                       <div className="flex-1 relative">
                         <div className="absolute inset-y-0 left-0 pl-1 flex items-center pointer-events-none">
                           <Calendar className="h-3 w-3 text-gray-400" />
@@ -504,14 +555,29 @@ export default function CatalogPage() {
                           value={dateRange.endDate}
                           min={dateRange.startDate || undefined}
                           onChange={(e) => {
-                            setDateRange({...dateRange, endDate: e.target.value});
-                            updateSearch({endDate: e.target.value});
+                            const newEndDate = e.target.value;
+                            setDateRange({...dateRange, endDate: newEndDate});
+                            updateSearch({endDate: newEndDate});
                           }}
                           className="block w-full pl-5 pr-2 py-1 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55] text-xs"
                         />
                       </div>
+                      <select
+                        value={timeReturn}
+                        onChange={(e) => {
+                          const newReturnTime = e.target.value;
+                          setTimeReturn(newReturnTime);
+                          updateSearch({returnTime: newReturnTime});
+                        }}
+                        className="border border-gray-300 rounded-md text-xs py-1 px-2 bg-white focus:outline-none focus:ring-1 focus:ring-[#8A7D55] focus:border-[#8A7D55]"
+                      >
+                        {timeOptions.map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
+                </div>
                 </div>
               </div>
             </div>

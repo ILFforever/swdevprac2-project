@@ -171,10 +171,9 @@ export default function BannerSearch() {
     
     // Navigate to vehicle listing with search parameters
     router.push(
-      `/catalog?location=${encodeURIComponent(location)}&pickup=${pickupFormatted}&pickupTime=${encodeURIComponent(timePickup)}&return=${returnFormatted}&returnTime=${encodeURIComponent(timeReturn)}`
+      `/catalog?location=${encodeURIComponent(location)}&startDate=${pickupFormatted}&pickupTime=${encodeURIComponent(timePickup)}&endDate=${returnFormatted}&returnTime=${encodeURIComponent(timeReturn)}`
     );
   };
-
 
 
 

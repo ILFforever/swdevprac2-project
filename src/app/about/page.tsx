@@ -75,7 +75,7 @@ export default function About() {
           or simply wish to indulge in automotive excellence, CEDT Rentals is your gateway to unparalleled luxury.
         </p>
         <a 
-          href="/booking" 
+          href="/catalog" 
           className="inline-block px-6 py-3 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors"
         >
           Book Now
