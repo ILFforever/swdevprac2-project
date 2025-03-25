@@ -539,42 +539,36 @@ export default function ReservationManagement({ token }: ReservationManagementPr
     currentPage * itemsPerPage
   );
 
-  // Handle view details button click
-  const handleViewDetails = (reservation: Reservation) => {
-    setSelectedReservation(reservation);
-    setShowDetailsModal(true);
-  };
 
-  // Close details modal
-  const closeDetailsModal = () => {
-    setSelectedReservation(null);
-    setShowDetailsModal(false);
-  };
-
-  // Handle reservation action
-  const handleReservationAction = (action: 'confirm' | 'complete' | 'delete', reservation: Reservation) => {
-    setConfirmationModal({
-      show: true,
-      action,
-      reservationId: reservation._id
-    });
-    setActionNotes('');
-  };
-
-  // Execute the selected action
-  const executeAction = () => {
-    if (!confirmationModal.action || !confirmationModal.reservationId) return;
-    
-    switch (confirmationModal.action) {
+  const executeAction = (action: 'confirm' | 'complete' | 'delete' | 'view', reservation: Reservation) => {
+    // Ensure the action and reservation are valid
+    if (!action || !reservation) return;
+  
+    const reservationId = reservation._id;
+  
+    // Ask for user confirmation
+    const isConfirmed = window.confirm(`Are you sure you want to ${action} this reservation?`);
+  
+    if (!isConfirmed) {
+      console.log("Action canceled by the user");
+      return; // Exit if the user doesn't confirm
+    }
+  
+    console.log("Executing Action:", action, reservation); // Debugging log
+  
+    // Perform the action based on the input
+    switch (action) {
       case 'confirm':
-        confirmReservation(confirmationModal.reservationId);
+        confirmReservation(reservationId); // Call the appropriate function
         break;
       case 'complete':
-        completeReservation(confirmationModal.reservationId);
+        completeReservation(reservationId);
         break;
       case 'delete':
-        deleteReservation(confirmationModal.reservationId);
+        deleteReservation(reservationId);
         break;
+      default:
+        console.error('Unknown action:', action);
     }
   };
 
@@ -797,30 +791,48 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                   {/* Actions */}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-center items-center">
+                      {/* Confirm Button */}
                       <button
-                        onClick={() => handleViewDetails(reservation)}
+                        onClick={() => executeAction('confirm', reservation)}
                         className="text-[#8A7D55] hover:text-[#766b48] mr-2"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
                           <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                          <path
+                            fillRule="evenodd"
+                            d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                       </button>
-                      
-                      <button 
-                        onClick={() => handleReservationAction('confirm', reservation)}
+
+                      {/* Conditional Button for Active or Completed Reservations */}
+                      <button
+                        onClick={() =>
+                          reservation.status === 'active'
+                            ? executeAction('complete', reservation) // Call complete for active reservations
+                            : executeAction('confirm', reservation) // Call confirm for other statuses
+                        }
                         className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition duration-200 mr-2 ${
-                          reservation.status === 'completed' 
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'  // Greyed out when completed
-                            : 'bg-green-100 hover:bg-green-200 text-green-700' // Active when pending
+                          reservation.status === 'completed'
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' // Greyed out when completed
+                            : reservation.status === 'active'
+                            ? 'bg-blue-100 hover:bg-blue-200 text-blue-700' // Blue for active reservations
+                            : 'bg-green-100 hover:bg-green-200 text-green-700' // Green for other statuses
                         }`}
-                        disabled={reservation.status === 'completed'}
+                        disabled={reservation.status === 'completed'} // Disable if completed
                       >
                         <Check className="w-4 h-4" />
                       </button>
 
+                      {/* Delete Button */}
                       <button
-                        onClick={() => handleReservationAction('delete', reservation)}
+                        onClick={() => executeAction('delete', reservation)}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-700 transition duration-200"
                       >
                         <Trash2 className="w-4 h-4" />
