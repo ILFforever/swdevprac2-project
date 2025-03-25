@@ -20,6 +20,12 @@ export default function ReservationDetailsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
+ // State for editing notes
+ const [isEditingNotes, setIsEditingNotes] = useState(false);
+ const [editedNotes, setEditedNotes] = useState('');
+
+
   // Fetch reservation details
   useEffect(() => {
     async function fetchReservationDetails() {
@@ -54,6 +60,80 @@ export default function ReservationDetailsPage({
 
     fetchReservationDetails();
   }, [params.reservationId, session?.user?.token, router]);
+  const handleUpdateNotes = async () => {
+    if (!session?.user?.token) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/rents/${params.reservationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.user.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ notes: editedNotes })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update notes');
+      }
+
+      // Update local state
+      setReservation(prev => ({
+        ...prev,
+        notes: editedNotes
+      }));
+      setIsEditingNotes(false);
+    } catch (err) {
+      console.error('Error updating notes:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle cancelling reservation
+  const handleCancelReservation = async () => {
+    if (!session?.user?.token) return;
+
+    if (!confirm('Are you sure you want to cancel this reservation?')) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/rents/${params.reservationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.user.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to cancel reservation');
+      }
+
+      // Update local state
+      setReservation(prev => ({
+        ...prev,
+        status: 'cancelled'
+      }));
+
+      // Redirect or show success message
+      router.push('/account/reservations');
+    } catch (err) {
+      console.error('Error cancelling reservation:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -326,25 +406,69 @@ export default function ReservationDetailsPage({
           </div>
         </div>
       </div>
-      <div className="mt-8 flex justify-center space-x-4">
-  {reservation.status === 'pending' && (
-    <>
-      <button 
-        className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-        onClick={() => handleDeleteReservation(params.reservationId)} // Call the deletion function
-      >
-        Cancel Reservation
-      </button>
+      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-medium">Additional Notes</h3>
+          {/* Only allow editing for pending reservations */}
+          {reservation.status === 'pending' && (
+            <div className="flex space-x-2">
+              {!isEditingNotes ? (
+                <button 
+                  onClick={() => {
+                    setEditedNotes(reservation.notes || '');
+                    setIsEditingNotes(true);
+                  }}
+                  className="text-[#8A7D55] hover:underline"
+                >
+                  Edit Notes
+                </button>
+              ) : (
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={handleUpdateNotes}
+                    disabled={isLoading}
+                    className="bg-[#8A7D55] text-white px-3 py-1 rounded hover:bg-[#766b48] disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    onClick={() => setIsEditingNotes(false)}
+                    className="border border-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-      <button 
-        className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        // Add update reservation logic
-      >
-        Update Reservation
-      </button>
-    </>
-  )}
-</div>
+        {isEditingNotes ? (
+          <textarea
+            value={editedNotes}
+            onChange={(e) => setEditedNotes(e.target.value)}
+            className="w-full border border-gray-300 rounded p-2 min-h-[100px]"
+            placeholder="Enter additional notes..."
+          />
+        ) : (
+          <p className={`text-gray-600 ${!reservation.notes && 'italic'}`}>
+            {reservation.notes || 'No additional notes'}
+          </p>
+        )}
+      </div>
+
+      {/* Action Buttons for Pending Reservation */}
+      {reservation.status === 'pending' && (
+        <div className="mt-8 flex justify-center space-x-4">
+          <button 
+            onClick={handleCancelReservation}
+            disabled={isLoading}
+            className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? 'Cancelling...' : 'Cancel Reservation'}
+          </button>
+        </div>
+      )}
     </main>
   );
 }
