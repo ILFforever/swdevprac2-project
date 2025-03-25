@@ -1,3 +1,4 @@
+// src/app/api/auth/[...nextauth]/authOptions.ts
 import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import userLogin from "@/libs/userLogIn";
@@ -47,7 +48,7 @@ export const authOptions: AuthOptions = {
             role: userProfile.data.role,
             token: loginResult.token,
             telephone_number: userProfile.data.telephone_number
-          } as CustomUser;
+          } as CustomUser; // Use the CustomUser type
         } catch (error) {
           console.error("Authentication error:", error);
           return null;

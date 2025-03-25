@@ -557,7 +557,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
   );
 
 
-  const executeAction = (action: 'confirm' | 'complete' | 'delete' | 'cancel', reservation: Reservation) => {
+  const executeAction = (action: 'confirm' | 'complete' | 'delete' | 'cancel'| 'edit', reservation: Reservation) => {
     // Ensure the action and reservation are valid
     if (!action || !reservation) return;
   
@@ -587,6 +587,8 @@ export default function ReservationManagement({ token }: ReservationManagementPr
       case 'delete':
         deleteReservation(reservationId);
         break;
+        case 'edit' :
+          break;
       default:
         console.error('Unknown action:', action);
     }
@@ -810,7 +812,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                   
                   {/* Actions */}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-center items-center">
+                    <div className="flex justify-center items-center space-x-0.5">
                       {/* Confirm Button */}
                       <button
                         onClick={() => router.push(`/account/reservations/${reservation._id}`)}
@@ -840,6 +842,26 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                       >
                         <Check className="w-4 h-4" />
                       </button>
+                     {/* Edit Button */}
+                       <button
+                          onClick={() => executeAction('edit', reservation)}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-full transition duration-200 bg-gray-100 hover:bg-gray-400 text-gray-700" 
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.232 5.232l3.536 3.536m-2.036-6.036L8.5 12.232V15.5h3.268l8.732-8.732m-11.5 4h2m-8 4h2m-8 4h18m-16 4h14"
+                            />
+                          </svg>
+                        </button>
 
                       {/* Cancel / Delete Button */}
                         <button
