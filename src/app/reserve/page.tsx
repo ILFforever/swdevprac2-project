@@ -13,6 +13,7 @@ import { useSession } from "next-auth/react";
 import styles from '@/components/banner-search.module.css';
 import Image from "next/image";
 import getUserProfile from "@/libs/getUserProfile";
+import { API_BASE_URL } from "@/config/apiConfig";
 
 // Define the Car interface based on your API response
 interface Car {
@@ -151,7 +152,7 @@ export default function Booking(){
 
             try {
                 // Fetch car details
-                const carResponse = await fetch(`http://localhost:5000/api/v1/cars/${carId}`);
+                const carResponse = await fetch(`${API_BASE_URL}/cars/${carId}`);
                 
                 if (!carResponse.ok) {
                     throw new Error('Failed to fetch car details');
