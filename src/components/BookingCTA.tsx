@@ -15,7 +15,7 @@ export default function BookingCTA() {
         </p>
         <button 
           className={styles.ctaButton}
-          onClick={() => router.push('/booking')}
+          onClick={() => router.push('/catalog')}
         >
           Book a Car Now
         </button>
