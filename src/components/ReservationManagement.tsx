@@ -629,7 +629,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
         onChange={(e) => setStatusFilter(e.target.value)}
         className="pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55] appearance-none"
       >
-        <option value="">All Statuses</option>
+        <option value="">All Status</option>
         <option value="pending">Pending</option>
         <option value="active">Active</option>
         <option value="completed">Completed</option>
