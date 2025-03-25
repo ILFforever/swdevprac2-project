@@ -82,7 +82,7 @@ export default function ReservationDetailsPage({
       }
 
       // Update local state
-      setReservation(prev => ({
+      setReservation((prev: any) => ({
         ...prev,
         notes: editedNotes
       }));
@@ -162,7 +162,7 @@ export default function ReservationDetailsPage({
 
 
       // Update local state
-      setReservation(prev => ({
+      setReservation((prev: any) => ({
         ...prev,
         status: 'cancelled'
       }));

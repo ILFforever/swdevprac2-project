@@ -44,7 +44,7 @@ export default async function TopMenu(){
             {/* Right side with navigation items and logo */}
             <div className={styles.rightSide}>
                 <TopMenuItem title='About' pageRef='/about'/>
-                <TopMenuItem title='Fleet' pageRef='/venue'/>
+                {/* <TopMenuItem title='Fleet' pageRef='/venue'/> */}
                 <TopMenuItem title='Services' pageRef='/service'/>
                 <TopMenuItem title='Catalog' pageRef='/catalog'/>
                 <NextLink href="/">
