@@ -335,27 +335,40 @@ export default function CatalogPage() {
   
   // Filter cars based on date availability
   const filterAvailableCars = (carsList: Car[]): Car[] => {
-    if (!dateRange.startDate || !dateRange.endDate) {
-      return carsList; // Return all cars if no date range selected
+    // If no start date is provided, return all cars
+    if (!dateRange.startDate) {
+      return carsList;
     }
     
+    // If no end date, use start date as end date
     const start = new Date(dateRange.startDate);
-    const end = new Date(dateRange.endDate);
+    const end = dateRange.endDate 
+      ? new Date(dateRange.endDate) 
+      : new Date(dateRange.startDate);
+    
+    // Ensure end date is not before start date
+    if (end < start) {
+      end.setTime(start.getTime());
+    }
     
     return carsList.filter(car => {
       // If car has rents array, check if any bookings overlap with selected dates
       if (car.rents && Array.isArray(car.rents)) {
-        const conflictingRent = car.rents.find(rent => {
+        const activeRents = car.rents.filter(rent => 
+          rent.status === 'active' || rent.status === 'pending'
+        );
+
+        const conflictingRent = activeRents.find(rent => {
           if (!rent.startDate || !rent.returnDate) return false;
           
           const rentStart = new Date(rent.startDate);
           const rentEnd = new Date(rent.returnDate);
           
-          // Check for overlap
+          // Check for complete time-based overlap
           return (
-            (rentStart <= end && rentEnd >= start) ||
-            (rentStart <= start && rentEnd >= start) ||
-            (rentStart <= end && rentEnd >= end)
+            (rentStart < end && rentEnd > start) ||  // Overlapping period
+            (start >= rentStart && start < rentEnd) ||  // Start date within rent period
+            (end > rentStart && end <= rentEnd)  // End date within rent period
           );
         });
         
