@@ -305,7 +305,7 @@ const updateSearch = (updates: Record<string, string>): void => {
               provider: provider.name || 'Unknown Provider',
               rents: car.rents || [],
               available: car.available ?? true,
-              image: car.image || '/img/car-default.jpg',
+              image: car.image || '/img/banner.jpg',
               license_plate: car.license_plate,
               manufactureDate: car.manufactureDate,
               dailyRate: car.dailyRate,
@@ -894,7 +894,7 @@ const updateSearch = (updates: Record<string, string>): void => {
             <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
               <div className="relative h-48">
                 <Image 
-                  src={car.image || '/img/car-default.jpg'} 
+                  src={car.image || '/img/banner.jpg'} 
                   alt={`${car.brand} ${car.model}`} 
                   fill
                   className="object-cover"
@@ -951,7 +951,7 @@ const updateSearch = (updates: Record<string, string>): void => {
                     onClick={() => car.available && handleBookCar(car.id)}
                     disabled={!car.available}
                   >
-                    {car.available ? 'Book Now' : 'Not Available'}
+                    {car.available ? 'View Car' : 'Not Available'}
                   </button>
                 </div>
               </div>
