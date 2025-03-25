@@ -238,7 +238,6 @@ const updateSearch = (updates: Record<string, string>): void => {
           'Authorization': `Bearer ${session.user.token}`,
           'Content-Type': 'application/json'
         };
-        //push
         // Fetch providers first
         const providersResponse = await fetch(API_BASE_URL+'/Car_Provider', {
           headers: authHeader
