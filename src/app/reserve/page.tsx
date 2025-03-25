@@ -51,8 +51,16 @@ export default function Booking(){
         telephone_number: string;
     } | null>(null);
 
-    const makeBooking = ()=>{
+    const makeBooking = async () => {
         if(nameLastname && tel && pickupDate && returnDate && pickupTime && returnTime && car){
+            // Check if car is available for selected dates
+            const isAvailable = await checkCarAvailability(car._id, pickupDate, returnDate);
+
+            if (!isAvailable) {
+                alert('Car is not available for the selected dates. Please choose different dates.');
+                return;
+            }
+
             const item:BookingItem ={
                 nameLastname: nameLastname,
                 tel: tel,
@@ -62,10 +70,61 @@ export default function Booking(){
                 pickupTime: pickupTime,
                 returnTime: returnTime
             }
-            console.log(item)
-            dispatch(addBooking(item))
+            console.log(item);
+            
+            try {
+                // Send booking data to backend
+                const response = await fetch('/api/v1/rents', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session?.user?.token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        startDate: item.bookDate,
+                        returnDate: item.returnDate,
+                        car: item.car,
+                        // Include other booking fields as needed
+                    })
+                });
+    
+                if (response.ok) {
+                    // Booking successful, dispatch to Redux store
+                    dispatch(addBooking(item));
+                    alert('Booking successful!');
+                } else {
+                    console.error('Booking failed:', response.statusText);
+                    alert('Booking failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error booking:', error);
+                alert('An error occurred. Please try again.');
+            }
         }
     }
+    
+
+    // Function to check car availability
+    const checkCarAvailability = async (carId: string, startDate: Dayjs, endDate: Dayjs) => {
+        try {
+            const response = await fetch(`/api/v1/cars/${carId}/availability?startDate=${startDate.format('YYYY-MM-DD')}&endDate=${endDate.format('YYYY-MM-DD')}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.user?.token}`
+                }
+            });
+    
+            if (!response.ok) {
+                throw new Error('Failed to fetch car availability');
+            }
+    
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error checking car availability:', error);
+            return null;
+        }
+    };
+    
 
     const [nameLastname, setNameLastname] = useState<string>('');
     const [tel, setTel] = useState<string>('');
@@ -79,6 +138,8 @@ export default function Booking(){
         const carId = searchParams.get('carId');
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
+        const providedPickupTime = searchParams.get('pickupTime');
+        const providedReturnTime = searchParams.get('returnTime');
 
         const fetchData = async () => {
             // Fetch car details
@@ -126,12 +187,18 @@ export default function Booking(){
             }
         };
 
-        // Prefill dates
+        // Prefill dates and times
         if (startDate) {
             setPickupDate(dayjs(startDate));
         }
         if (endDate) {
             setReturnDate(dayjs(endDate));
+        }
+        if (providedPickupTime) {
+            setPickupTime(providedPickupTime);
+        }
+        if (providedReturnTime) {
+            setReturnTime(providedReturnTime);
         }
 
         fetchData();
@@ -305,7 +372,6 @@ export default function Booking(){
                         </div>
                     </div>
                 </div>
-
                 {/* Car Details */}
                 {car && (
                     <div>
