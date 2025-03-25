@@ -526,252 +526,256 @@ export default function ReservationManagement({ token }: ReservationManagementPr
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      {/* Success and Error Messages */}
+    {/* Success and Error Messages */}
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-          {error}
-        </div>
-      )}
-      
-      {success && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
-          {success}
-        </div>
-      )}
-
-      {/* Filters and Search */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        {/* Search Bar */}
-        <div className="relative flex-grow">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search by ID, car, or customer..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
-          />
-        </div>
-        
-        {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55] appearance-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-        
-        {/* Date Range Filters */}
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <CalendarIcon className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              placeholder="From Date"
-              value={dateRangeFilter.start}
-              onChange={(e) => setDateRangeFilter(prev => ({ ...prev, start: e.target.value }))}
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
-            />
-          </div>
-          <span className="text-gray-500">to</span>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <CalendarIcon className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              placeholder="To Date"
-              value={dateRangeFilter.end}
-              min={dateRangeFilter.start}
-              onChange={(e) => setDateRangeFilter(prev => ({ ...prev, end: e.target.value }))}
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
-            />
-          </div>
-        </div>
-        
-        {/* Clear Filters */}
-          <button
-            onClick={() => {
-              setSearchQuery('');
-              setStatusFilter('');
-              setDateRangeFilter({ start: '', end: '' });
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-          >
-            Clear Filters
-          </button>
+          <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md">
+        {error}
       </div>
+    )}
+     {success && (
+    <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md">
+      {success}
+    </div>
+  )}
 
-      {/* Reservations Table */}
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8A7D55]"></div>
+  {/* Filters and Search */}
+  <div className="flex flex-wrap gap-4 mb-6">
+    {/* Search Bar */}
+    <div className="relative flex-grow">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <Search className="h-5 w-5 text-gray-400" />
+      </div>
+      <input
+        type="text"
+        placeholder="Search reservations by ID, car, or customer..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
+      />
+    </div>
+    
+    {/* Status Filter */}
+    <div className="relative">
+      <select
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+        className="pl-3 pr-8 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55] appearance-none"
+      >
+        <option value="">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+        <ChevronDown className="h-4 w-4 text-gray-400" />
+      </div>
+    </div>
+    
+    {/* Date Range Filters */}
+    <div className="flex items-center gap-2">
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <CalendarIcon className="h-4 w-4 text-gray-400" />
         </div>
-      ) : filteredReservations.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-500 text-lg">No reservations match your criteria</p>
-          <p className="text-gray-400 mt-2">Try adjusting your filters or search terms</p>
+        <input
+          type="date"
+          placeholder="From Date"
+          value={dateRangeFilter.start}
+          onChange={(e) => setDateRangeFilter(prev => ({ ...prev, start: e.target.value }))}
+          className="pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
+        />
+      </div>
+      <span className="text-gray-500">to</span>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <CalendarIcon className="h-4 w-4 text-gray-400" />
         </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CREATED
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vehicle
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Dates
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedData.map((reservation) => {
-                  const car = getCarDetails(reservation.car);
-                  const user = getUserDetails(reservation.user);
-                  
-                  return (
-                    <tr key={reservation._id} className="hover:bg-gray-50">
-                      {/* Reservation ID */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+        <input
+          type="date"
+          placeholder="To Date"
+          value={dateRangeFilter.end}
+          min={dateRangeFilter.start}
+          onChange={(e) => setDateRangeFilter(prev => ({ ...prev, end: e.target.value }))}
+          className="pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#8A7D55]"
+        />
+      </div>
+    </div>
+    
+    {/* Clear Filters */}
+      <button
+        onClick={() => {
+          setSearchQuery('');
+          setStatusFilter('');
+          setDateRangeFilter({ start: '', end: '' });
+        }}
+        className="px-3 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+      >
+        Clear Filters
+      </button>
+  </div>
+
+  {/* Reservations Table */}
+  {isLoading ? (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8A7D55]"></div>
+    </div>
+  ) : filteredReservations.length === 0 ? (
+    <div className="text-center py-12 bg-gray-50 rounded-lg">
+      <p className="text-gray-500 text-lg">No reservations match your criteria</p>
+      <p className="text-gray-400 mt-2">Try adjusting your filters or search terms</p>
+    </div>
+  ) : (
+    <>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                Reservation ID
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Customer
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Vehicle
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Dates
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Price
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {paginatedData.map((reservation) => {
+              const car = getCarDetails(reservation.car);
+              const user = getUserDetails(reservation.user);
+              
+              return (
+                <tr key={reservation._id} className="hover:bg-gray-50">
+                   {/* Reservation ID */}
+                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="text-gray-900 font-medium">
                           {formatDate(reservation.createdAt).split(',')}
                         </div>
-                      </td>
-                      
-                      {/* Customer */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {user ? (
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                            <div className="text-xs text-gray-500">{user.telephone_number}</div>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">Unknown customer</div>
-                        )}
-                      </td>
-                      
-                      {/* Vehicle */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {car ? (
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{car.brand} {car.model}</div>
-                            <div className="text-sm text-gray-500">{car.license_plate}</div>
-                            <div className="text-xs text-gray-500 capitalize">{car.type} • {car.color}</div>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">Unknown vehicle</div>
-                        )}
-                      </td>
-                      
-                      {/* Dates */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          <div className="flex items-center">
-                            <span className="text-xs font-medium text-gray-500 w-12">From:</span>
-                            <span>{formatDate(reservation.startDate).split(',')[0]}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="text-xs font-medium text-gray-500 w-12">Until:</span>
-                            <span>{formatDate(reservation.returnDate).split(',')[0]}</span>
-                          </div>
-                          {reservation.actualReturnDate && (
-                            <div className="flex items-center text-sm text-gray-500">
-                              <span className="text-xs font-medium text-gray-500 w-12">Actual:</span>
-                              <span>{formatDate(reservation.actualReturnDate).split(',')[0]}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                                        
-                      {/* Price */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatCurrency(reservation.price)}
-                        </div>
-                        {reservation.additionalCharges != null && reservation.additionalCharges > 0 ? (
-                          <div className="text-xs text-red-500">
-                            {formatCurrency(reservation.additionalCharges)} (extra)
-                          </div>
-                        ) : null}
-                      </td>
-
-                      
-                      {/* Status */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span 
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClasses(reservation.status)}`}
-                        >
-                          {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                        </span>
-                      </td>
-                      
-                      {/* Actions */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleViewDetails(reservation)}
-                          className="text-[#8A7D55] hover:text-[#766b48] mr-3"
-                        >
-                          Details
-                        </button>
-                        
-                        {reservation.status === 'pending' && (
-                          <button
-                            onClick={() => handleReservationAction('confirm', reservation)}
-                            className="text-blue-600 hover:text-blue-900 mr-3"
-                          >
-                            Confirm
-                          </button>
-                        )}
-                        
-                        {reservation.status === 'active' && (
-                          <button
-                            onClick={() => handleReservationAction('complete', reservation)}
-                            className="text-green-600 hover:text-green-900 mr-3"
-                          >
-                            Complete
-                          </button>
-                        )}
-                        
-                        {(reservation.status === 'pending' || reservation.status === 'active') && (
-                          <button
-                            onClick={() => handleReservationAction('cancel', reservation)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                             Cancel
-                      </button>
+                    </td>
+                  
+                  {/* Customer */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user ? (
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="text-xs text-gray-500">{user.telephone_number}</div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Unknown customer</div>
                     )}
+                  </td>
+                  
+                  {/* Vehicle */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {car ? (
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{car.brand} {car.model}</div>
+                        <div className="text-sm text-gray-500">{car.license_plate}</div>
+                        <div className="text-xs text-gray-500 capitalize">{car.type} • {car.color}</div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500">Unknown vehicle</div>
+                    )}
+                  </td>
+                  
+                  {/* Dates */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <span className="text-xs font-medium text-gray-500 w-12">From:</span>
+                        <span>{formatDate(reservation.startDate).split(',')[0]}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-xs font-medium text-gray-500 w-12">Until:</span>
+                        <span>{formatDate(reservation.returnDate).split(',')[0]}</span>
+                      </div>
+                      {reservation.actualReturnDate && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <span className="text-xs font-medium text-gray-500 w-12">Actual:</span>
+                          <span>{formatDate(reservation.actualReturnDate).split(',')[0]}</span>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                                    
+                  {/* Price */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatCurrency(reservation.price)}
+                    </div>
+                    {reservation.additionalCharges != null && reservation.additionalCharges > 0 ? (
+                      <div className="text-xs text-red-500">
+                        {formatCurrency(reservation.additionalCharges)} (extra)
+                      </div>
+                    ) : null}
+                  </td>
+
+                  
+                  {/* Status */}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span 
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClasses(reservation.status)}`}
+                    >
+                      {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                    </span>
+                  </td>
+                  
+                  {/* Actions */}
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-center items-center">
+                      <button
+                        onClick={() => handleViewDetails(reservation)}
+                        className="text-[#8A7D55] hover:text-[#766b48] mr-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      
+                      {reservation.status === 'pending' && (
+                        <button 
+                          onClick={() => handleReservationAction('confirm', reservation)}
+                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none mr-2"
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      
+                      {reservation.status === 'active' && (
+                        <button
+                          onClick={() => handleReservationAction('complete', reservation)} 
+                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none mr-2"
+                        >
+                          Complete
+                        </button>
+                      )}
+                      
+                      {(reservation.status === 'pending' || reservation.status === 'active') && (
+                        <button
+                          onClick={() => handleReservationAction('cancel', reservation)}
+                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none"  
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -780,6 +784,6 @@ export default function ReservationManagement({ token }: ReservationManagementPr
         </table>
       </div>
     </>
-    )}
-    </div>
   )}
+</div>
+)}
