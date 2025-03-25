@@ -1,5 +1,6 @@
 // Base URL for API calls - replace with your actual backend URL
-export const API_BASE_URL = 'http://localhost:5000/api/v1';
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // For production:
 // export const API_BASE_URL = 'https://your-production-backend-url.com/api/v1';
