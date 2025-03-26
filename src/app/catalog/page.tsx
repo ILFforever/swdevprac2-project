@@ -438,24 +438,29 @@ useEffect(() => {
   // Filter the cars
   const filteredCars = cars.filter(car => {
     // Apply search query filter
-    const searchLower = searchQuery.toLowerCase();
-    const modelMatch = `${car.brand} ${car.model}`.toLowerCase().includes(searchLower);
-    const providerMatch = car.provider.toLowerCase().includes(searchLower);
-    
-    if (searchQuery && !modelMatch && !providerMatch) return false;
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      const modelMatch = `${car.brand} ${car.model}`.toLowerCase().includes(searchLower);
+      const providerMatch = car.provider.toLowerCase().includes(searchLower);
+      const typeMatch = car.type.toLowerCase().includes(searchLower);
+      const colorMatch = car.color ? car.color.toLowerCase().includes(searchLower) : false;
+      
+      if (!modelMatch && !providerMatch && !typeMatch && !colorMatch) return false;
+    }
     
     // Apply price range filter
     if (car.price < priceRange.min || car.price > priceRange.max) return false;
     
     // Apply location filter (already filtered by API, but double-check)
-    if (selectedLocation && !car.provider.includes(selectedLocation)) return false;
+    if (selectedLocation && !car.provider.toLowerCase().includes(selectedLocation.toLowerCase())) return false;
     
-    // Apply all other filters
-    if (activeFilters.vehicleType && car.type !== activeFilters.vehicleType) return false;
-    if (activeFilters.brand && car.brand !== activeFilters.brand) return false;
+    // Apply all other filters with case-insensitive comparison
+    if (activeFilters.vehicleType && car.type.toLowerCase() !== activeFilters.vehicleType.toLowerCase()) return false;
+    if (activeFilters.brand && car.brand.toLowerCase() !== activeFilters.brand.toLowerCase()) return false;
     if (activeFilters.year && car.year?.toString() !== activeFilters.year) return false;
     if (activeFilters.seats && car.seats?.toString() !== activeFilters.seats) return false;
-    if (activeFilters.provider && car.provider !== activeFilters.provider) return false;
+    if (activeFilters.provider && car.provider.toLowerCase() !== activeFilters.provider.toLowerCase()) return false;
+    
     return true;
   });
   
@@ -691,15 +696,10 @@ useEffect(() => {
                       <div
                         key={index}
                         className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                        onClick={(e) => {
+                        onClick={() => {
                           setSelectedLocation(provider);
                           updateSearch({location: provider});
                           setShowLocationSuggestions(false);
-                          
-                          // Type-safe way to remove focus from the input
-                          if (e.currentTarget.closest('.relative')?.querySelector('input')) {
-                            (e.currentTarget.closest('.relative')?.querySelector('input') as HTMLInputElement).blur();
-                          }
                         }}
                       >
                         {provider}
