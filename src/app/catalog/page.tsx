@@ -135,6 +135,9 @@ const timeOptions = [
     prev?: { page: number; limit: number };
   }>({});
   const [itemsPerPage, setItemsPerPage] = useState<number>(25); // Default from API
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [totalMatchingCount, setTotalMatchingCount] = useState<number>(0);
+
 
    function useLocationSuggestions() {
     const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -300,10 +303,12 @@ useEffect(() => {
       
       // Map the API response to match our expected car format
       if (carsData.success && Array.isArray(carsData.data)) {
+        setTotalCount(carsData.totalCount || 0);
+        setTotalMatchingCount(carsData.totalMatchingCount || 0);
         const formattedCars: Car[] = carsData.data.map((car: any) => {
           // Get provider details from our providers map
-          const provider = providersMap[car.provider_id] || { name: 'Unknown Provider' };
           
+          const provider = providersMap[car.provider_id] || { name: 'Unknown Provider' };
           return {
             id: car._id || car.id,
             brand: car.brand || 'Unknown Brand',
@@ -541,26 +546,26 @@ useEffect(() => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <header className="mb-6">
-        <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#8A7D55]">
-              {loading ? 'Looking for vehicles...' : 
-               error ? 'Error loading cars' : 
-               'Available Vehicles'}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {!loading && !error && `${availableCars.length} premium cars ready for your journey`}
-              {error && 'We encountered an issue while fetching available cars'}
-            </p>
-          </div>
-          
-          {!loading && !error && availableCars.length > 0 && (
-            <div className="bg-[#f8f5f0] px-4 py-2 rounded-lg">
-              <span className="font-medium text-[#8A7D55]">{availableCars.length}</span>
-              <span className="text-gray-700"> cars match your criteria</span>
-            </div>
-          )}
+      <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+        <div>
+          <h1 className="text-3xl font-bold text-[#8A7D55]">
+            {loading ? 'Looking for vehicles...' : 
+            error ? 'Error loading cars' : 
+            'Available Vehicles'}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {!loading && !error && `${totalMatchingCount} premium cars ready for your journey`}
+            {error && 'We encountered an issue while fetching available cars'}
+          </p>
         </div>
+        
+        {!loading && !error && cars.length > 0 && (
+          <div className="bg-[#f8f5f0] px-4 py-2 rounded-lg">
+            <span className="font-medium text-[#8A7D55]">{totalMatchingCount}</span>
+            <span className="text-gray-700"> cars match your criteria</span>
+          </div>
+        )}
+      </div>
         
              {/* Filters and search */}
         <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
@@ -1077,35 +1082,45 @@ useEffect(() => {
             </div>
           </div>
         )}
-        <div className="flex justify-center items-center mt-10 space-x-2">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage <= 1}
-            className={`px-4 py-2 rounded-md ${
-              currentPage > 1
-                ? 'bg-[#8A7D55] text-white hover:bg-[#766b48]'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            Previous
-          </button>
-          
-          <span className="px-4 py-2 text-gray-700">
-            Page {currentPage} {totalItems > 0 ? `of ${Math.ceil(totalItems / itemsPerPage)}` : ''}
-          </span>
-          
-          <button
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            disabled={!pagination.next}
-            className={`px-4 py-2 rounded-md ${
-              pagination.next
-                ? 'bg-[#8A7D55] text-white hover:bg-[#766b48]'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            Next
-          </button>
-        </div>
+        {/* Pagination Controls */}
+          {!loading && !error && availableCars.length > 0 && (
+            <div className="flex flex-col items-center mt-10 space-y-2">
+              {/* Show count information - simplified version */}
+              <div className="text-sm text-gray-600">
+                {/* Check if any filters are applied */}
+                {(searchQuery || selectedLocation || dateRange.startDate || dateRange.endDate || 
+                  priceRange.min > 0 || priceRange.max < Number.MAX_SAFE_INTEGER || 
+                  Object.values(activeFilters).some(filter => filter !== '')) ? (
+                  // Filters applied - show filtered count
+                  `Showing ${availableCars.length} available cars`
+                ) : (
+                  // No filters - show total count
+                  `Showing ${availableCars.length} of ${totalCount} total cars`
+                )}
+              </div>
+              
+              {/* Pagination buttons */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage <= 1}
+                  className="px-4 py-2 rounded-md bg-[#8A7D55] text-white hover:bg-[#766b48] disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2 text-gray-700">
+                  Page {currentPage} of {Math.ceil(totalMatchingCount / itemsPerPage)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={!pagination.next}
+                  className="px-4 py-2 rounded-md bg-[#8A7D55] text-white hover:bg-[#766b48] disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
     </div>
   );
 }
