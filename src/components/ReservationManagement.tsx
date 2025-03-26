@@ -137,7 +137,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
       
       try {
         // Fetch all reservations
-        const response = await fetch(`${API_BASE_URL}/rents`, {
+        const response = await fetch(`${API_BASE_URL}/rents/all`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

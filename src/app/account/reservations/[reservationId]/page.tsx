@@ -415,12 +415,14 @@ export default function ReservationDetailsPage({
                   </>
                 )}
                 
-                {reservation.additionalCharges && reservation.additionalCharges > 0 && (
-                  <p className="flex justify-between">
-                    <span className="text-gray-600">Additional Charges:</span>
+                <p className="flex justify-between">
+                  <span className="text-gray-600">Additional Charges:</span>
+                  {reservation.additionalCharges && reservation.additionalCharges > 0 ? (
                     <span className="text-red-600">{formatCurrency(reservation.additionalCharges)}</span>
-                  </p>
-                )}
+                  ) : (
+                    <span className="text-green-600">No extra charges</span>
+                  )}
+                </p>
                 
                 <p className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total Paid:</span>
