@@ -1,9 +1,5 @@
-// Base URL for API calls - replace with your actual backend URL
-
 export const API_BASE_URL = 'https://cedt-rentals-be.vercel.app/api/v1';
 
-// For production:
-// export const API_BASE_URL = 'https://your-production-backend-url.com/api/v1';
 
 // Auth endpoints
 export const AUTH_ENDPOINTS = {

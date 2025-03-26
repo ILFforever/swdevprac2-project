@@ -588,6 +588,7 @@ export default function ReservationManagement({ token }: ReservationManagementPr
         deleteReservation(reservationId);
         break;
         case 'edit' :
+          router.push(`/account/reservations/${reservationId}`);
           break;
       default:
         console.error('Unknown action:', action);
@@ -832,13 +833,13 @@ export default function ReservationManagement({ token }: ReservationManagementPr
                             : executeAction('confirm', reservation) // Call confirm for other statuses
                         }
                         className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition duration-200 mr-2 ${
-                          reservation.status === 'completed'
-                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' // Greyed out when completed
+                          reservation.status === 'completed' || reservation.status === 'cancelled'
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' // Greyed out when completed or cancelled
                             : reservation.status === 'active'
                             ? 'bg-blue-100 hover:bg-blue-200 text-blue-700' // Blue for active reservations
                             : 'bg-green-100 hover:bg-green-200 text-green-700' // Green for other statuses
                         }`}
-                        disabled={reservation.status === 'completed'} // Disable if completed
+                        disabled={reservation.status === 'completed' || reservation.status === 'cancelled'} // Disable if completed or cancelled
                       >
                         <Check className="w-4 h-4" />
                       </button>
