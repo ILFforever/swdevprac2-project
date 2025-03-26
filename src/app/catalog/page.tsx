@@ -949,11 +949,6 @@ const updateSearch = (updates: Record<string, string>): void => {
                   fill
                   className="object-cover"
                 />
-                {!car.available && (
-                  <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">Currently Rented</span>
-                  </div>
-                )}
               </div>
               
               <div className="p-4">

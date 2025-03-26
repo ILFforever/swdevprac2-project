@@ -385,11 +385,11 @@ export default function Booking() {
                       fill
                       className="object-cover"
                     />
-                    {!car.available && (
+                    {/* {!car.available && (
                       <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
                         <span className="text-white font-bold text-lg">Currently Rented</span>
                       </div>
-                    )}
+                    )} */}
                   </div>
                   <div className="p-6 space-y-4">
                     <div>
@@ -426,9 +426,9 @@ export default function Booking() {
                     <div>
                       <p className="text-sm text-gray-500">Status</p>
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        car.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {car.available ? 'Available' : 'Currently rented'}
+                        {isAvailable ? 'Available' : 'Not Available for Selected Dates'}
                       </span>
                     </div>
                     
