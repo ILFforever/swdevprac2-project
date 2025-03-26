@@ -1,4 +1,3 @@
-
 import { AUTH_ENDPOINTS } from '@/config/apiConfig';
 
 export default async function userLogin(userEmail: string, userPassword: string) {
@@ -21,7 +20,12 @@ export default async function userLogin(userEmail: string, userPassword: string)
     console.log('Login response data:', data);
 
     if (!response.ok) {
-      throw new Error(data.message || data.msg || "Authentication failed");
+      // Return the error response data for better error handling
+      return {
+        success: false,
+        message: data.message || data.msg || "Authentication failed",
+        status: response.status
+      };
     }
     
     // Make sure data has the expected structure
@@ -36,6 +40,12 @@ export default async function userLogin(userEmail: string, userPassword: string)
     return data;
   } catch (error) {
     console.error('Login error:', error);
-    throw error;
+    
+    // Return a properly formatted error response
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Network error occurred",
+      isNetworkError: true
+    };
   }
 }

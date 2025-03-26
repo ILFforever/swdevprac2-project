@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -25,8 +24,6 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
     setIsLoading(true);
 
     try {
-      console.log('Attempting to sign in with:', { email, password, callbackUrl });
-      
       const result = await signIn('credentials', {
         redirect: false,
         email,
@@ -34,10 +31,13 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
         callbackUrl,
       });
 
-      console.log('Sign in result:', result);
-
       if (result?.error) {
-        setError(result.error);
+        // Handle different error messages in a more user-friendly way
+        if (result.error === "Invalid credentials") {
+          setError('Invalid email or password. Please try again.');
+        } else {
+          setError(result.error || 'Failed to sign in. Please try again.');
+        }
         setIsLoading(false);
         return;
       }
@@ -45,10 +45,13 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
       if (result?.url) {
         router.push(result.url);
         router.refresh();
+      } else {
+        setError('Something went wrong. Please try again.');
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again later.');
       setIsLoading(false);
     }
   };
@@ -95,7 +98,14 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
           disabled={isLoading}
           className="w-full bg-[#8A7D55] text-white py-2 px-4 rounded-md hover:bg-[#766b48] transition-colors focus:outline-none focus:ring-2 focus:ring-[#8A7D55] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Signing In...' : 'Sign In'}
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+              Signing In...
+            </div>
+          ) : (
+            'Sign In'
+          )}
         </button>
       </form>
 

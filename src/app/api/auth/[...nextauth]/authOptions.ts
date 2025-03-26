@@ -3,7 +3,6 @@ import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import userLogin from "@/libs/userLogIn";
 import getUserProfile from "@/libs/getUserProfile";
-import { JWT } from "next-auth/jwt";
 
 // Define a custom User type that extends the NextAuth User type
 interface CustomUser {
@@ -33,7 +32,14 @@ export const authOptions: AuthOptions = {
           const loginResult = await userLogin(credentials.email, credentials.password);
           
           if (!loginResult?.success || !loginResult?.token) {
-            return null;
+            // Return specific error message from API if available
+            if (loginResult?.message) {
+              throw new Error(loginResult.message);
+            } else if (loginResult?.msg) {
+              throw new Error(loginResult.msg);
+            } else {
+              throw new Error("Invalid credentials");
+            }
           }
           
           // Fetch user profile with token
@@ -48,16 +54,18 @@ export const authOptions: AuthOptions = {
             role: userProfile.data.role,
             token: loginResult.token,
             telephone_number: userProfile.data.telephone_number
-          } as CustomUser; // Use the CustomUser type
+          } as CustomUser; 
         } catch (error) {
           console.error("Authentication error:", error);
-          return null;
+          // Throw the error so NextAuth can handle it properly
+          throw new Error(error instanceof Error ? error.message : "Authentication failed");
         }
       }
     })
   ],
   pages: {
     signIn: '/signin',
+    error: '/signin',  // Redirect to sign-in page on error
   },
   session: { strategy: "jwt" },
   callbacks: {
@@ -81,19 +89,20 @@ export const authOptions: AuthOptions = {
     session({ session, token }) {
       // Add token data to the session
       if (token && session.user) {
-        // Ensure these fields exist in your next-auth.d.ts Session interface
         session.user._id = token._id as string;
         session.user.name = token.name as string;
         session.user.email = token.email as string;
         session.user.role = token.role as string;
         session.user.token = token.token as string;
         
-        // Safely add telephone_number using type assertion
+        // Safely add telephone_number
         if (token.telephone_number) {
           (session.user as any).telephone_number = token.telephone_number;
         }
       }
       return session;
     },
-  }
+  },
+  // Add debug mode in development to help troubleshoot authentication issues
+  debug: process.env.NODE_ENV === 'development',
 };
