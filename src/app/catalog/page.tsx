@@ -325,8 +325,8 @@ const updateSearch = (updates: Record<string, string>): void => {
       }
     };
 
-    // Only fetch data if we have a session
-    if (session?.user?.token) {
+    // always fetch
+    if (true) {
       fetchData();
     } else {
       setLoading(false);
