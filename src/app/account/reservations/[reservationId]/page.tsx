@@ -445,8 +445,7 @@ export default function ReservationDetailsPage({
         </div>
       </div>
       <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-      I'll help you style those buttons to make them look more sophisticated and engaging. Here's an improved version:
-jsxCopy<div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4">
   <h3 className="text-xl font-medium">Additional Notes</h3>
   {/* Only allow editing for pending reservations or admin users */}
           {(reservation.status === 'pending' || session?.user?.role === 'admin') && (
