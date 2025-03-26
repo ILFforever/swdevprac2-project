@@ -188,7 +188,7 @@ export default function CarManagement({ token }: CarManagementProps) {
             setFilteredCars(data.data);
             setCurrentPage(page);
             setPagination(data.pagination || {});
-            setTotalItems(data.count || 0);
+            setTotalItems(data.totalCount || 0);
           } else {
             throw new Error('Unexpected response format from server');
           }
