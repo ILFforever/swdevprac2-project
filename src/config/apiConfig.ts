@@ -1,6 +1,6 @@
 // Base URL for API calls - replace with your actual backend URL
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+export const API_BASE_URL = 'https://cedt-rentals-be.vercel.app/api/v1';
 
 // For production:
 // export const API_BASE_URL = 'https://your-production-backend-url.com/api/v1';
