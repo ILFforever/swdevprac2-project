@@ -445,10 +445,11 @@ export default function ReservationDetailsPage({
         </div>
       </div>
       <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-medium">Additional Notes</h3>
-          {/* Only allow editing for pending reservations */}
-          {reservation.status === 'pending' && (
+      I'll help you style those buttons to make them look more sophisticated and engaging. Here's an improved version:
+jsxCopy<div className="flex justify-between items-center mb-4">
+  <h3 className="text-xl font-medium">Additional Notes</h3>
+  {/* Only allow editing for pending reservations or admin users */}
+          {(reservation.status === 'pending' || session?.user?.role === 'admin') && (
             <div className="flex space-x-2">
               {!isEditingNotes ? (
                 <button 
@@ -456,8 +457,11 @@ export default function ReservationDetailsPage({
                     setEditedNotes(reservation.notes || '');
                     setIsEditingNotes(true);
                   }}
-                  className="text-[#8A7D55] hover:underline"
+                  className="text-[#8A7D55] font-medium hover:text-[#645c40] transition-colors flex items-center"
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
                   Edit Notes
                 </button>
               ) : (
@@ -465,14 +469,20 @@ export default function ReservationDetailsPage({
                   <button 
                     onClick={handleUpdateNotes}
                     disabled={isLoading}
-                    className="bg-[#8A7D55] text-white px-3 py-1 rounded hover:bg-[#766b48] disabled:opacity-50"
+                    className="bg-[#8A7D55] text-white px-4 py-1.5 rounded-md hover:bg-[#766b48] disabled:opacity-50 transition-colors duration-200 flex items-center shadow-sm"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                     Save
                   </button>
                   <button 
                     onClick={() => setIsEditingNotes(false)}
-                    className="border border-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-100"
+                    className="border border-gray-300 text-gray-700 px-4 py-1.5 rounded-md hover:bg-gray-100 transition-colors duration-200 flex items-center shadow-sm"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                     Cancel
                   </button>
                 </div>
@@ -485,28 +495,43 @@ export default function ReservationDetailsPage({
           <textarea
             value={editedNotes}
             onChange={(e) => setEditedNotes(e.target.value)}
-            className="w-full border border-gray-300 rounded p-2 min-h-[100px]"
+            className="w-full border border-gray-300 rounded-md p-3 min-h-[120px] focus:border-[#8A7D55] focus:ring-1 focus:ring-[#8A7D55] focus:outline-none transition-colors duration-200"
             placeholder="Enter additional notes..."
           />
         ) : (
-          <p className={`text-gray-600 ${!reservation.notes && 'italic'}`}>
+          <p className={`text-gray-600 p-2 ${!reservation.notes && 'italic'}`}>
             {reservation.notes || 'No additional notes'}
           </p>
         )}
-      </div>
-
-      {/* Action Buttons for Pending Reservation */}
-      {reservation.status === 'pending' && (
-        <div className="mt-8 flex justify-center space-x-4">
-          <button 
-            onClick={handleCancelReservation}
-            disabled={isLoading}
-            className="px-6 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
-          >
-            {isLoading ? 'Cancelling...' : 'Cancel Reservation'}
-          </button>
         </div>
-      )}
-    </main>
+
+        {/* Action Buttons for Pending Reservation or Admin */}
+        {(reservation.status === 'pending' || session?.user?.role === 'admin') && (
+          <div className="mt-8 flex justify-center space-x-4">
+            <button 
+              onClick={handleCancelReservation}
+              disabled={isLoading}
+              className="px-6 py-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 shadow-md hover:shadow-lg flex items-center justify-center transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel Reservation
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        </main>
   );
 }
