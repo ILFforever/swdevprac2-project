@@ -127,6 +127,14 @@ const timeOptions = [
     provider: ''
   });
 
+  //Pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const [pagination, setPagination] = useState<{
+    next?: { page: number; limit: number };
+    prev?: { page: number; limit: number };
+  }>({});
+  const [itemsPerPage, setItemsPerPage] = useState<number>(25); // Default from API
 
    function useLocationSuggestions() {
     const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -222,6 +230,7 @@ const updateSearch = (updates: Record<string, string>): void => {
   router.push(`/catalog?${newParams.toString()}`);
 };
   
+// Fetch car data and providers from API
 useEffect(() => {
   const fetchData = async () => {
     try {
@@ -259,7 +268,11 @@ useEffect(() => {
       }
       
       // Build query parameters
-      let queryParams = '';
+      let queryParams = new URLSearchParams();
+      
+      // Add pagination parameters
+      queryParams.append('page', currentPage.toString());
+      queryParams.append('limit', itemsPerPage.toString());
       
       // Add location filter (by provider)
       if (selectedLocation) {
@@ -270,12 +283,12 @@ useEffect(() => {
         );
         
         if (providerEntry) {
-          queryParams += `?providerId=${providerEntry[0]}`;
+          queryParams.append('providerId', providerEntry[0]);
         }
       }
       
       // Then fetch cars
-      const carsResponse = await fetch(`${API_BASE_URL}/cars${queryParams}`, {
+      const carsResponse = await fetch(`${API_BASE_URL}/cars?${queryParams.toString()}`, {
         headers
       });
       
@@ -311,7 +324,24 @@ useEffect(() => {
             tier: car.tier
           };
         });
+        
+        // Set the cars
         setCars(formattedCars);
+        
+        // Update pagination state
+        setTotalItems(carsData.count || formattedCars.length);
+        
+        // Store pagination information from the response
+        if (carsData.pagination) {
+          setPagination(carsData.pagination);
+          
+          // Update items per page if it's provided in the response
+          if (carsData.pagination.next?.limit) {
+            setItemsPerPage(carsData.pagination.next.limit);
+          }
+        } else {
+          setPagination({});
+        }
       } else {
         setCars([]);
         setError('Invalid data format received from server');
@@ -326,7 +356,7 @@ useEffect(() => {
 
   // Always fetch data, regardless of authentication status
   fetchData();
-}, [session, selectedLocation, dateRange.startDate, dateRange.endDate]);
+}, [session, selectedLocation, dateRange.startDate, dateRange.endDate, currentPage, itemsPerPage]);
 
   // Filter cars based on date availability
   const filterAvailableCars = (carsList: Car[]): Car[] => {
@@ -1047,6 +1077,35 @@ useEffect(() => {
             </div>
           </div>
         )}
+        <div className="flex justify-center items-center mt-10 space-x-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage <= 1}
+            className={`px-4 py-2 rounded-md ${
+              currentPage > 1
+                ? 'bg-[#8A7D55] text-white hover:bg-[#766b48]'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Previous
+          </button>
+          
+          <span className="px-4 py-2 text-gray-700">
+            Page {currentPage} {totalItems > 0 ? `of ${Math.ceil(totalItems / itemsPerPage)}` : ''}
+          </span>
+          
+          <button
+            onClick={() => setCurrentPage(prev => prev + 1)}
+            disabled={!pagination.next}
+            className={`px-4 py-2 rounded-md ${
+              pagination.next
+                ? 'bg-[#8A7D55] text-white hover:bg-[#766b48]'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            Next
+          </button>
+        </div>
     </div>
   );
 }
