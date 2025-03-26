@@ -222,118 +222,112 @@ const updateSearch = (updates: Record<string, string>): void => {
   router.push(`/catalog?${newParams.toString()}`);
 };
   
-  // Fetch car data and providers from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Check if user is authenticated
-        if (!session?.user?.token) {
-          setError('Authentication required. Please log in.');
-          setLoading(false);
-          return;
-        }
-        
-        const authHeader = {
-          'Authorization': `Bearer ${session.user.token}`,
-          'Content-Type': 'application/json'
-        };
-        // Fetch providers first
-        const providersResponse = await fetch(API_BASE_URL+'/Car_Provider', {
-          headers: authHeader
-        });
-        
-        if (!providersResponse.ok) {
-          throw new Error(`Error fetching providers: ${providersResponse.status}`);
-        }
-        
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Set up headers based on authentication status
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Add auth token if user is logged in
+      if (session?.user?.token) {
+        headers['Authorization'] = `Bearer ${session.user.token}`;
+      }
+      
+      // Fetch providers first
+      const providersResponse = await fetch(`${API_BASE_URL}/Car_Provider`, {
+        headers
+      });
+      
+      // Create a map of provider IDs to provider objects for easy lookup
+      const providersMap: ProvidersMap = {};
+      
+      if (providersResponse.ok) {
         const providersData = await providersResponse.json();
         
-        // Create a map of provider IDs to provider objects for easy lookup
-        const providersMap: ProvidersMap = {};
         if (providersData.success && Array.isArray(providersData.data)) {
           providersData.data.forEach((provider: Provider) => {
             providersMap[provider._id] = provider;
           });
           setProviders(providersMap);
         }
-        
-        // Build query parameters
-        let queryParams = '';
-        
-        // Add location filter (by provider)
-        if (selectedLocation) {
-          // Find provider ID by location name
-          const providerEntry = Object.entries(providersMap).find(
-            ([_, provider]) => provider.name === selectedLocation || 
-                              (provider.address && provider.address.includes(selectedLocation))
-          );
-          
-          if (providerEntry) {
-            queryParams += `?providerId=${providerEntry[0]}`;
-          }
-        }
-        
-        // Then fetch cars
-        const carsResponse = await fetch(API_BASE_URL+`/cars${queryParams}`, {
-          headers: authHeader
-        });
-        
-        if (!carsResponse.ok) {
-          throw new Error(`Error fetching cars: ${carsResponse.status}`);
-        }
-        
-        const carsData = await carsResponse.json();
-        
-        // Map the API response to match our expected car format
-        if (carsData.success && Array.isArray(carsData.data)) {
-          const formattedCars: Car[] = carsData.data.map((car: any) => {
-            // Get provider details from our providers map
-            const provider = providersMap[car.provider_id] || { name: 'Unknown Provider' };
-            
-            return {
-              id: car._id || car.id,
-              brand: car.brand || 'Unknown Brand',
-              model: car.model || 'Unknown Model',
-              year: car.manufactureDate ? new Date(car.manufactureDate).getFullYear() : 2023,
-              price: car.dailyRate || 0,
-              type: car.type || 'Other',
-              color: car.color || 'Unknown',
-              seats: car.seats || 5,
-              providerId: car.provider_id,
-              provider: provider.name || 'Unknown Provider',
-              rents: car.rents || [],
-              available: car.available ?? true,
-              image: car.image || '/img/banner.jpg',
-              license_plate: car.license_plate,
-              manufactureDate: car.manufactureDate,
-              dailyRate: car.dailyRate,
-              tier: car.tier
-            };
-          });
-          setCars(formattedCars);
-        } else {
-          setCars([]);
-          setError('Invalid data format received from server');
-        }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      } finally {
-        setLoading(false);
+      } else {
+        console.warn('Unable to fetch providers. Using default provider names.');
       }
-    };
-
-    // always fetch
-    if (true) {
-      fetchData();
-    } else {
+      
+      // Build query parameters
+      let queryParams = '';
+      
+      // Add location filter (by provider)
+      if (selectedLocation) {
+        // Find provider ID by location name
+        const providerEntry = Object.entries(providersMap).find(
+          ([_, provider]) => provider.name === selectedLocation || 
+                            (provider.address && provider.address.includes(selectedLocation))
+        );
+        
+        if (providerEntry) {
+          queryParams += `?providerId=${providerEntry[0]}`;
+        }
+      }
+      
+      // Then fetch cars
+      const carsResponse = await fetch(`${API_BASE_URL}/cars${queryParams}`, {
+        headers
+      });
+      
+      if (!carsResponse.ok) {
+        throw new Error(`Error fetching cars: ${carsResponse.status}`);
+      }
+      
+      const carsData = await carsResponse.json();
+      
+      // Map the API response to match our expected car format
+      if (carsData.success && Array.isArray(carsData.data)) {
+        const formattedCars: Car[] = carsData.data.map((car: any) => {
+          // Get provider details from our providers map
+          const provider = providersMap[car.provider_id] || { name: 'Unknown Provider' };
+          
+          return {
+            id: car._id || car.id,
+            brand: car.brand || 'Unknown Brand',
+            model: car.model || 'Unknown Model',
+            year: car.manufactureDate ? new Date(car.manufactureDate).getFullYear() : 2023,
+            price: car.dailyRate || 0,
+            type: car.type || 'Other',
+            color: car.color || 'Unknown',
+            seats: car.seats || 5,
+            providerId: car.provider_id,
+            provider: provider.name || 'Unknown Provider',
+            rents: car.rents || [],
+            available: car.available ?? true,
+            image: car.image || '/img/banner.jpg',
+            license_plate: car.license_plate,
+            manufactureDate: car.manufactureDate,
+            dailyRate: car.dailyRate,
+            tier: car.tier
+          };
+        });
+        setCars(formattedCars);
+      } else {
+        setCars([]);
+        setError('Invalid data format received from server');
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
       setLoading(false);
-      setError('Please log in to view available cars');
     }
-  }, [session, selectedLocation, dateRange.startDate, dateRange.endDate]);
-  
+  };
+
+  // Always fetch data, regardless of authentication status
+  fetchData();
+}, [session, selectedLocation, dateRange.startDate, dateRange.endDate]);
+
   // Filter cars based on date availability
   const filterAvailableCars = (carsList: Car[]): Car[] => {
     // If no start date is provided, return all cars
