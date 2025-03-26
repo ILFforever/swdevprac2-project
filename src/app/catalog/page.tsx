@@ -434,6 +434,19 @@ useEffect(() => {
   
 
   const filterOptions = extractFilterOptions();
+
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    // Escape special regex characters to prevent errors
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, i) => 
+      regex.test(part) ? <span key={i} className="bg-yellow-100 font-medium">{part}</span> : part
+    );
+  };
   
   // Filter the cars
   const filteredCars = cars.filter(car => {
@@ -451,7 +464,7 @@ useEffect(() => {
     // Apply price range filter
     if (car.price < priceRange.min || car.price > priceRange.max) return false;
     
-    // Apply location filter (already filtered by API, but double-check)
+    // Apply location filter in a more responsive way, matching anywhere in the text
     if (selectedLocation && !car.provider.toLowerCase().includes(selectedLocation.toLowerCase())) return false;
     
     // Apply all other filters with case-insensitive comparison
@@ -687,8 +700,8 @@ useEffect(() => {
                 </div>
               </div>
               
-              {/* Location suggestions */}
-              {filterOptions.provider.length > 0 && selectedLocation && showLocationSuggestions && (
+             {/* Location suggestions */}
+              {filterOptions.provider.length > 0 && selectedLocation.trim() !== '' && showLocationSuggestions && (
                 <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 max-h-56 overflow-auto">
                   {filterOptions.provider
                     .filter(provider => provider.toLowerCase().includes(selectedLocation.toLowerCase()))
@@ -702,7 +715,8 @@ useEffect(() => {
                           setShowLocationSuggestions(false);
                         }}
                       >
-                        {provider}
+                        {/* Highlight matching text */}
+                        {highlightMatch(provider, selectedLocation)}
                       </div>
                     ))
                   }
