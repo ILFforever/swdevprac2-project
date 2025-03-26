@@ -101,7 +101,7 @@ export default function Home() {
               <div className="p-5">
                 <h3 className="text-xl mb-2">Bentley Continental GT</h3>
                 <p className="text-gray-600 mb-4">The perfect blend of performance and refined elegance.</p>
-                <Link href="/vehicles" className="text-[#8A7D55] hover:underline">View Details</Link>
+                <Link href="/catalog" className="text-[#8A7D55] hover:underline">View Details</Link>
               </div>
             </div>
             
@@ -117,14 +117,14 @@ export default function Home() {
               <div className="p-5">
                 <h3 className="text-xl mb-2">Porsche Cayenne</h3>
                 <p className="text-gray-600 mb-4">Iconic design with exhilarating performance.</p>
-                <Link href="/vehicles" className="text-[#8A7D55] hover:underline">View Details</Link>
+                <Link href="/catalog" className="text-[#8A7D55] hover:underline">View Details</Link>
               </div>
             </div>
           </div>
           
           <div className="text-center mt-10">
             <Link 
-              href="/vehicles" 
+              href="/catalog" 
               className="inline-block px-6 py-3 bg-white text-[#8A7D55] border border-[#8A7D55] hover:bg-[#8A7D55] hover:text-white transition-colors duration-300"
             >
               View All Vehicles

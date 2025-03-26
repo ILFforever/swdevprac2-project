@@ -117,7 +117,7 @@ const timeOptions = [
   const [selectedLocation, setSelectedLocation] = useState<string>(
     searchParams.get('location') || ''
   );
-  
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   // Filter states
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     vehicleType: '',
@@ -126,6 +126,7 @@ const timeOptions = [
     seats: '',
     provider: ''
   });
+
 
    function useLocationSuggestions() {
     const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
@@ -461,6 +462,56 @@ const updateSearch = (updates: Record<string, string>): void => {
     }
     
     router.push(`/reserve?${bookingParams.toString()}`);
+  };
+
+  const isCarAvailableForDates = (car: Car): boolean => {
+    // If no dates are selected, consider the car as available
+    if (!dateRange.startDate || !dateRange.endDate) return true;
+  
+    // If car doesn't have rents data or is explicitly marked as available
+    if (!car.rents || car.rents.length === 0 || car.available === true) return true;
+  
+    const start = new Date(dateRange.startDate);
+    const end = new Date(dateRange.endDate);
+    
+    // Check for overlaps in the booking dates
+    const conflicts = car.rents.filter((rent: Rent) => {
+      // Only check active and pending bookings
+      if (rent.status !== 'active' && rent.status !== 'pending') {
+        return false;
+      }
+      
+      const rentStartDate = new Date(rent.startDate);
+      const rentEndDate = new Date(rent.returnDate);
+      
+      // If the rental period overlaps with the requested booking, return true
+      return (start < rentEndDate && end > rentStartDate);
+    });
+  
+    return conflicts.length === 0;
+  };
+  
+  // Function to handle booking or show auth prompt
+  const handleCarAction = (carId: string, car: Car) => {
+    if (!session) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    
+    // Use our more sophisticated availability checker
+    const isAvailableForSelectedDates = isCarAvailableForDates(car);
+    
+    if (isAvailableForSelectedDates) {
+      handleBookCar(carId);
+    } else {
+      // If we have selected dates but car isn't available for those dates
+      if (dateRange.startDate && dateRange.endDate) {
+        alert('This car is not available for the selected dates. Please choose different dates or another vehicle.');
+      } else {
+        // If no dates selected, let them proceed to the reservation page
+        handleBookCar(carId);
+      }
+    }
   };
 
   return (
@@ -851,8 +902,8 @@ const updateSearch = (updates: Record<string, string>): void => {
         </div>
       </header>
 
-      {/* Authentication error */}
-      {!session && (
+      {/* Authentication error (check only on press view car) */}
+      {/* {!session && (
         <div className="text-center py-10">
           <h3 className="text-xl font-medium text-red-600">Authentication Required</h3>
           <p className="text-gray-600 mt-2">Please sign in to view available cars.</p>
@@ -863,7 +914,7 @@ const updateSearch = (updates: Record<string, string>): void => {
             Sign In
           </Link>
         </div>
-      )}
+      )} */}
       
       {/* Loading state */}
       {loading && (
@@ -873,7 +924,7 @@ const updateSearch = (updates: Record<string, string>): void => {
       )}
       
       {/* Error state */}
-      {error && !loading && session && (
+      {error && !loading && (
         <div className="text-center py-10">
           <h3 className="text-xl font-medium text-red-600">Error loading cars</h3>
           <p className="text-gray-600 mt-2">{error}</p>
@@ -887,7 +938,7 @@ const updateSearch = (updates: Record<string, string>): void => {
       )}
       
       {/* Cars grid - only show when we have data and no errors */}
-      {!loading && !error && session && (
+      {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {availableCars.map((car) => (
             <div key={car.id} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -943,14 +994,14 @@ const updateSearch = (updates: Record<string, string>): void => {
                 <div className="mt-4">
                   <button 
                     className={`w-full py-2.5 ${
-                      car.available 
+                      isCarAvailableForDates(car)
                         ? 'bg-[#8A7D55] hover:bg-[#766b48] text-white' 
                         : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                     } rounded-md text-sm font-medium transition-colors duration-200 shadow-sm`}
-                    onClick={() => car.available && handleBookCar(car.id)}
-                    disabled={!car.available}
+                    onClick={() => handleCarAction(car.id, car)}
+                    disabled={!isCarAvailableForDates(car)}
                   >
-                    {car.available ? 'View Car' : 'Not Available'}
+                    {isCarAvailableForDates(car) ? 'View Car' : 'Not Available for Selected Dates'}
                   </button>
                 </div>
               </div>
@@ -980,6 +1031,33 @@ const updateSearch = (updates: Record<string, string>): void => {
           </button>
         </div>
       )}
+      {/* Authentication Prompt Modal */}
+        {showAuthPrompt && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+              <div className="text-center">
+                <h3 className="text-xl font-medium text-gray-900 mb-3">Authentication Required</h3>
+                <p className="text-gray-600 mb-5">
+                  Please sign in to view vehicle details and make reservations.
+                </p>
+                <div className="flex flex-col sm:flex-row sm:space-x-3 space-y-3 sm:space-y-0 justify-center">
+                  <Link
+                    href={`/signin?callbackUrl=/catalog`}
+                    className="px-4 py-2 bg-[#8A7D55] text-white rounded-md hover:bg-[#766b48] transition-colors inline-block"
+                  >
+                    Sign In
+                  </Link>
+                  <button
+                    onClick={() => setShowAuthPrompt(false)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }
